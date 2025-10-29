@@ -23,9 +23,11 @@ export const Scanner: React.FC<ScannerProps> = ({ onNavigate, photos, setPhotos 
   };
   
   const handleCapture = () => {
-    // In a real app, this would interact with the camera API
-    // For this prototype, we'll just add a placeholder
-    handlePhotoTaken(`https://picsum.photos/seed/capture${currentStep}${Date.now()}/800/600`);
+    // Preferir cámara del dispositivo cuando esté disponible
+    if (fileInputRef.current) {
+      fileInputRef.current.click();
+      return;
+    }
   };
 
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -105,6 +107,7 @@ export const Scanner: React.FC<ScannerProps> = ({ onNavigate, photos, setPhotos 
                     onChange={handleFileUpload}
                     className="hidden"
                     accept="image/*"
+                    capture="environment"
                 />
             </div>
         ) : (
