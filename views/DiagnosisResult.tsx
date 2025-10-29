@@ -1,10 +1,10 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Button } from '../components/Button';
 import { Card } from '../components/Card';
 import { ProgressBar } from '../components/ProgressBar';
 import { RiskChip } from '../components/RiskChip';
-import { MOCK_DIAGNOSIS_DATA } from '../constants';
 import { TireDiagnosis, View } from '../types';
+import { analyzeTires } from '../services/geminiService';
 
 interface DiagnosisResultProps {
   onNavigate: (view: View) => void;
@@ -50,7 +50,32 @@ const TireDiagnosisCard: React.FC<{ diagnosis: TireDiagnosis, photo: string | nu
 );
 
 export const DiagnosisResult: React.FC<DiagnosisResultProps> = ({ onNavigate, scannedPhotos }) => {
-    const overallHealth = MOCK_DIAGNOSIS_DATA.reduce((acc, tire) => acc + tire.health, 0) / MOCK_DIAGNOSIS_DATA.length;
+    const [diagnosis, setDiagnosis] = useState<TireDiagnosis[] | null>(null);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+
+    useEffect(() => {
+        let mounted = true;
+        (async () => {
+            try {
+                const result = await analyzeTires(scannedPhotos);
+                if (mounted) setDiagnosis(result);
+            } catch (e) {
+                console.error(e);
+                setError('No pudimos analizar las imágenes. Mostramos un diagnóstico de ejemplo.');
+            } finally {
+                if (mounted) setLoading(false);
+            }
+        })();
+        return () => {
+            mounted = false;
+        };
+    }, []);
+
+    const dataToShow: TireDiagnosis[] = diagnosis || [];
+    const overallHealth = dataToShow.length
+        ? dataToShow.reduce((acc, tire) => acc + tire.health, 0) / dataToShow.length
+        : 0;
     
     return (
         <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-12">
@@ -62,12 +87,18 @@ export const DiagnosisResult: React.FC<DiagnosisResultProps> = ({ onNavigate, sc
                     <h2 className="text-2xl font-bold text-center">Resumen General</h2>
                     <div className="mt-4 text-center">
                         <p className="text-lg">Salud promedio de tus llantas: <span className="font-extrabold text-3xl">{Math.round(overallHealth)}%</span></p>
-                        <p className="text-avante-gray-200 mt-2">Hemos encontrado <strong>2</strong> alertas de prioridad alta o media que requieren tu atención.</p>
+                        {loading && <p className="text-avante-gray-200 mt-2">Analizando tus llantas…</p>}
+                        {error && <p className="text-avante-gray-200 mt-2">{error}</p>}
                     </div>
                 </Card>
 
                 <div className="space-y-8">
-                    {MOCK_DIAGNOSIS_DATA.map((tire, index) => <TireDiagnosisCard key={tire.id} diagnosis={tire} photo={scannedPhotos[index]}/>)}
+                    {loading && (
+                        <Card><p className="text-avante-gray-300">Procesando imágenes…</p></Card>
+                    )}
+                    {!loading && dataToShow.map((tire, index) => (
+                        <TireDiagnosisCard key={index} diagnosis={tire} photo={scannedPhotos[index]} />
+                    ))}
                 </div>
 
                 <div className="text-center mt-12 space-y-4">

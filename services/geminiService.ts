@@ -1,6 +1,5 @@
 
-import { GoogleGenAI } from "@google/genai";
-import { ChatMessage } from "../types";
+import { ChatMessage, TireDiagnosis, RiskLevel } from "../types";
 
 // This is a MOCK service. In a real application, you would implement the Gemini API call here.
 // The API key would be handled by environment variables and not be exposed client-side.
@@ -32,3 +31,38 @@ export const getAssistantResponse = async (userMessage: string, history: ChatMes
     }, 1500);
   });
 };
+
+// Real analysis via serverless endpoint. Sends photos (as data URLs) and optional metadata.
+export async function analyzeTires(
+  photos: (string | null)[],
+  metadata?: { vehicle?: string; usage?: string; mileageKm?: number }
+): Promise<TireDiagnosis[]> {
+  const payload = {
+    photos: photos.filter(Boolean),
+    metadata,
+  };
+  const res = await fetch("/api/gemini-analyze", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) throw new Error("ANALYSIS_ERROR");
+  const data = await res.json();
+  if (Array.isArray(data?.diagnosis)) {
+    // Validate minimal shape; coerce RiskLevel strings
+    return data.diagnosis.map((d: any, idx: number) => ({
+      id: idx + 1,
+      position: d.position || `Llanta ${idx + 1}`,
+      health: Number(d.health ?? 70),
+      wearPatterns: Array.isArray(d.wearPatterns) ? d.wearPatterns : [],
+      alerts: Array.isArray(d.alerts)
+        ? d.alerts.map((a: any) => ({ text: String(a.text || ""), risk: (a.risk as RiskLevel) || RiskLevel.Low }))
+        : [],
+      lifeRemainingKm: d.lifeRemainingKm || { min: 8000, max: 25000 },
+      lifeRemainingMonths: d.lifeRemainingMonths || { min: 3, max: 12 },
+      recommendations: Array.isArray(d.recommendations) ? d.recommendations : [],
+      image: d.image || (photos[idx] as string | undefined) || "",
+    }));
+  }
+  throw new Error("INVALID_RESPONSE");
+}
