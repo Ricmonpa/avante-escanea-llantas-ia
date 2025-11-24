@@ -29,23 +29,10 @@ export default async function handler(req, res) {
 
     const genAI = new GoogleGenerativeAI(apiKey);
     
-    // Primero probar con un test simple para verificar que la API funciona
-    try {
-      console.log("Testing API connection...");
-      const testModel = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
-      // No hacemos la llamada aún, solo verificamos que el modelo se crea
-      console.log("Model created successfully");
-    } catch (testError) {
-      console.error("Error creating model:", testError);
-      return res.status(500).json({ 
-        ok: false, 
-        error: "API_SETUP_ERROR",
-        message: testError.message,
-        details: "Verifica que la API de Gemini esté habilitada en Google Cloud Console"
-      });
-    }
-    
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    // Usar gemini-pro-vision que es el modelo estándar para imágenes y texto
+    // Es más estable y ampliamente disponible que gemini-1.5-flash
+    const model = genAI.getGenerativeModel({ model: "gemini-pro-vision" });
+    console.log("Using model: gemini-pro-vision");
 
     // Construir el prompt con instrucciones claras
     const instructions = `Eres un experto en diagnóstico de llantas. Analiza las ${photos.length} foto(s) de llantas y devuelve un JSON válido con este formato exacto (una entrada por cada foto):
