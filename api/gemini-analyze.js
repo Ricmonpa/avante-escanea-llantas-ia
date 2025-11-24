@@ -121,21 +121,25 @@ IMPORTANTE:
     }
     
     // Modelos que soportan imágenes, en orden de preferencia
+    // Priorizar modelos más recientes (2.5, 2.0) y luego fallback a 1.5 si están disponibles
     const imageModels = [
-      "gemini-1.5-pro",
-      "gemini-1.5-flash", 
-      "gemini-1.5-pro-latest",
-      "gemini-1.5-flash-latest",
-      "gemini-pro-vision"
+      "gemini-2.5-pro",           // Más reciente y potente
+      "gemini-2.5-flash",         // Más reciente y rápido
+      "gemini-2.0-flash",         // Versión 2.0
+      "gemini-2.0-flash-001",     // Versión específica 2.0
+      "gemini-1.5-pro",           // Fallback a 1.5 si está disponible
+      "gemini-1.5-flash",         // Fallback a 1.5 si está disponible
+      "gemini-pro-vision"         // Último recurso
     ];
     
-    // Filtrar solo modelos que estén disponibles (si los listamos)
+    // Filtrar solo modelos que estén disponibles (excluyendo modelos de embedding)
+    const nonEmbeddingModels = availableModels.filter(m => !m.includes('embedding'));
     const modelsToTry = availableModels.length > 0 
-      ? imageModels.filter(m => availableModels.includes(m))
+      ? imageModels.filter(m => nonEmbeddingModels.includes(m))
       : imageModels;
     
     if (modelsToTry.length === 0) {
-      throw new Error("No image-capable models available. Available models: " + availableModels.join(', '));
+      throw new Error(`No image-capable models available. Available models: ${availableModels.join(', ')}. Note: embedding models don't support images.`);
     }
     
     console.log(`Will try models in order: ${modelsToTry.join(', ')}`);
