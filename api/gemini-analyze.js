@@ -105,15 +105,17 @@ IMPORTANTE:
 
     // Primero, listar modelos disponibles para saber cuáles podemos usar
     console.log("Listing available models...");
-    let availableModels = [];
+    let availableModels = []; // Nombres completos con "models/" si vienen así
+    let availableModelNames = []; // Nombres sin "models/" para comparación
     try {
       const listUrl = `https://generativelanguage.googleapis.com/v1/models?key=${apiKey}`;
       const listResponse = await fetch(listUrl);
       if (listResponse.ok) {
         const listData = await listResponse.json();
         if (listData.models) {
-          availableModels = listData.models.map(m => m.name.replace('models/', ''));
-          console.log(`Available models: ${availableModels.join(', ')}`);
+          availableModels = listData.models.map(m => m.name); // Mantener nombre completo
+          availableModelNames = listData.models.map(m => m.name.replace('models/', '')); // Para comparación
+          console.log(`Available models: ${availableModelNames.join(', ')}`);
         }
       }
     } catch (listError) {
@@ -133,13 +135,13 @@ IMPORTANTE:
     ];
     
     // Filtrar solo modelos que estén disponibles (excluyendo modelos de embedding)
-    const nonEmbeddingModels = availableModels.filter(m => !m.includes('embedding'));
-    const modelsToTry = availableModels.length > 0 
+    const nonEmbeddingModels = availableModelNames.filter(m => !m.includes('embedding'));
+    const modelsToTry = availableModelNames.length > 0 
       ? imageModels.filter(m => nonEmbeddingModels.includes(m))
       : imageModels;
     
     if (modelsToTry.length === 0) {
-      throw new Error(`No image-capable models available. Available models: ${availableModels.join(', ')}. Note: embedding models don't support images.`);
+      throw new Error(`No image-capable models available. Available models: ${availableModelNames.join(', ')}. Note: embedding models don't support images.`);
     }
     
     console.log(`Will try models in order: ${modelsToTry.join(', ')}`);
@@ -157,6 +159,7 @@ IMPORTANTE:
     
     for (const name of modelsToTry) {
       try {
+        // Construir URL: el endpoint espera el nombre sin "models/" en la ruta
         const url = `https://generativelanguage.googleapis.com/v1/models/${name}:generateContent?key=${apiKey}`;
         console.log(`[${triedModels.length + 1}/${modelsToTry.length}] Trying model: ${name}`);
         triedModels.push(name);
@@ -172,7 +175,7 @@ IMPORTANTE:
         if (!apiResponse.ok) {
           const errorData = await apiResponse.json().catch(() => ({}));
           const errorMsg = errorData.error?.message || JSON.stringify(errorData);
-          console.log(`Model ${name} failed: ${apiResponse.status} - ${errorMsg}`);
+          console.log(`Model ${name} failed (${apiResponse.status}): ${errorMsg}`);
           lastError = new Error(`Model ${name}: ${apiResponse.status} - ${errorMsg}`);
           continue; // Intentar siguiente modelo
         }
