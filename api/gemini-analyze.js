@@ -1,5 +1,3 @@
-import { GoogleGenerativeAI } from "@google/generative-ai";
-
 export default async function handler(req, res) {
   if (req.method !== "POST") {
     return res.status(405).json({ ok: false, error: "METHOD_NOT_ALLOWED" });
@@ -27,12 +25,8 @@ export default async function handler(req, res) {
       return res.status(400).json({ ok: false, error: "NO_PHOTOS" });
     }
 
-    const genAI = new GoogleGenerativeAI(apiKey);
-    
-    // Usar gemini-pro-vision que es el modelo estándar para imágenes y texto
-    // Es más estable y ampliamente disponible que gemini-1.5-flash
-    const model = genAI.getGenerativeModel({ model: "gemini-pro-vision" });
-    console.log("Using model: gemini-pro-vision");
+    // Usar API REST directamente con v1 (no v1beta) 
+    // Intentaremos con diferentes modelos hasta encontrar uno disponible
 
     // Construir el prompt con instrucciones claras
     const instructions = `Eres un experto en diagnóstico de llantas. Analiza las ${photos.length} foto(s) de llantas y devuelve un JSON válido con este formato exacto (una entrada por cada foto):
@@ -109,32 +103,60 @@ IMPORTANTE:
     // Agregar imágenes
     parts.push(...imageParts);
 
-    // Llamar a Gemini - probar con formato alternativo si el primero falla
-    console.log(`Calling Gemini with ${parts.length} parts (${imageParts.length} images)`);
+    // Llamar a Gemini usando API REST directamente (v1 en lugar de v1beta)
+    console.log(`Calling Gemini REST API with ${parts.length} parts (${imageParts.length} images)`);
     
-    let result;
-    try {
-      // Intentar formato directo primero
-      result = await model.generateContent(parts);
-    } catch (formatError) {
-      console.error("Error with direct format, trying alternative:", formatError.message);
-      // Intentar formato alternativo con contents
+    const requestBody = {
+      contents: [{
+        parts: parts
+      }]
+    };
+    
+    // Intentar con diferentes modelos si el primero falla
+    const modelNames = ["gemini-1.5-pro", "gemini-1.5-flash", "gemini-pro-vision"];
+    let text;
+    let lastError;
+    
+    for (const name of modelNames) {
       try {
-        result = await model.generateContent({
-          contents: [{
-            role: "user",
-            parts: parts
-          }]
+        const url = `https://generativelanguage.googleapis.com/v1/models/${name}:generateContent?key=${apiKey}`;
+        console.log(`Trying model: ${name}`);
+        
+        const apiResponse = await fetch(url, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify(requestBody)
         });
-      } catch (altError) {
-        console.error("Both formats failed");
-        throw formatError; // Lanzar el error original
+        
+        if (!apiResponse.ok) {
+          const errorData = await apiResponse.json().catch(() => ({}));
+          console.log(`Model ${name} failed: ${apiResponse.status} - ${JSON.stringify(errorData)}`);
+          lastError = new Error(`API returned ${apiResponse.status}: ${JSON.stringify(errorData)}`);
+          continue; // Intentar siguiente modelo
+        }
+        
+        const data = await apiResponse.json();
+        
+        // Extraer el texto de la respuesta
+        if (data.candidates && data.candidates[0] && data.candidates[0].content && data.candidates[0].content.parts) {
+          text = data.candidates[0].content.parts.map(part => part.text).join("");
+          console.log(`Model ${name} succeeded! Response length: ${text.length}`);
+          break; // Éxito, salir del loop
+        } else {
+          throw new Error("Invalid response format from Gemini API");
+        }
+      } catch (apiError) {
+        console.error(`Model ${name} error:`, apiError.message);
+        lastError = apiError;
+        continue; // Intentar siguiente modelo
       }
     }
     
-    const response = await result.response;
-    const text = response.text();
-    console.log("Gemini response received, length:", text.length);
+    if (!text) {
+      throw lastError || new Error("All models failed");
+    }
 
     // Limpiar y parsear JSON
     let jsonString = text.trim();
