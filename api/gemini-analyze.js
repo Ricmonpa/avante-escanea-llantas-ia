@@ -103,7 +103,42 @@ IMPORTANTE:
     // Agregar imágenes
     parts.push(...imageParts);
 
-    // Llamar a Gemini usando API REST directamente (v1 en lugar de v1beta)
+    // Primero, listar modelos disponibles para saber cuáles podemos usar
+    console.log("Listing available models...");
+    let availableModels = [];
+    try {
+      const listUrl = `https://generativelanguage.googleapis.com/v1/models?key=${apiKey}`;
+      const listResponse = await fetch(listUrl);
+      if (listResponse.ok) {
+        const listData = await listResponse.json();
+        if (listData.models) {
+          availableModels = listData.models.map(m => m.name.replace('models/', ''));
+          console.log(`Available models: ${availableModels.join(', ')}`);
+        }
+      }
+    } catch (listError) {
+      console.log("Could not list models, will try common ones:", listError.message);
+    }
+    
+    // Modelos que soportan imágenes, en orden de preferencia
+    const imageModels = [
+      "gemini-1.5-pro",
+      "gemini-1.5-flash", 
+      "gemini-1.5-pro-latest",
+      "gemini-1.5-flash-latest",
+      "gemini-pro-vision"
+    ];
+    
+    // Filtrar solo modelos que estén disponibles (si los listamos)
+    const modelsToTry = availableModels.length > 0 
+      ? imageModels.filter(m => availableModels.includes(m))
+      : imageModels;
+    
+    if (modelsToTry.length === 0) {
+      throw new Error("No image-capable models available. Available models: " + availableModels.join(', '));
+    }
+    
+    console.log(`Will try models in order: ${modelsToTry.join(', ')}`);
     console.log(`Calling Gemini REST API with ${parts.length} parts (${imageParts.length} images)`);
     
     const requestBody = {
@@ -112,15 +147,15 @@ IMPORTANTE:
       }]
     };
     
-    // Intentar con diferentes modelos si el primero falla
-    const modelNames = ["gemini-1.5-pro", "gemini-1.5-flash", "gemini-pro-vision"];
     let text;
     let lastError;
+    let triedModels = [];
     
-    for (const name of modelNames) {
+    for (const name of modelsToTry) {
       try {
         const url = `https://generativelanguage.googleapis.com/v1/models/${name}:generateContent?key=${apiKey}`;
-        console.log(`Trying model: ${name}`);
+        console.log(`[${triedModels.length + 1}/${modelsToTry.length}] Trying model: ${name}`);
+        triedModels.push(name);
         
         const apiResponse = await fetch(url, {
           method: "POST",
@@ -132,8 +167,9 @@ IMPORTANTE:
         
         if (!apiResponse.ok) {
           const errorData = await apiResponse.json().catch(() => ({}));
-          console.log(`Model ${name} failed: ${apiResponse.status} - ${JSON.stringify(errorData)}`);
-          lastError = new Error(`API returned ${apiResponse.status}: ${JSON.stringify(errorData)}`);
+          const errorMsg = errorData.error?.message || JSON.stringify(errorData);
+          console.log(`Model ${name} failed: ${apiResponse.status} - ${errorMsg}`);
+          lastError = new Error(`Model ${name}: ${apiResponse.status} - ${errorMsg}`);
           continue; // Intentar siguiente modelo
         }
         
@@ -142,7 +178,7 @@ IMPORTANTE:
         // Extraer el texto de la respuesta
         if (data.candidates && data.candidates[0] && data.candidates[0].content && data.candidates[0].content.parts) {
           text = data.candidates[0].content.parts.map(part => part.text).join("");
-          console.log(`Model ${name} succeeded! Response length: ${text.length}`);
+          console.log(`✅ Model ${name} succeeded! Response length: ${text.length}`);
           break; // Éxito, salir del loop
         } else {
           throw new Error("Invalid response format from Gemini API");
@@ -155,7 +191,9 @@ IMPORTANTE:
     }
     
     if (!text) {
-      throw lastError || new Error("All models failed");
+      const errorMsg = `All models failed. Tried: ${triedModels.join(', ')}. Last error: ${lastError?.message || 'Unknown'}`;
+      console.error(errorMsg);
+      throw new Error(errorMsg);
     }
 
     // Limpiar y parsear JSON
