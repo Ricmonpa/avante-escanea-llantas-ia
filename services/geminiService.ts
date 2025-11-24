@@ -37,32 +37,55 @@ export async function analyzeTires(
   photos: (string | null)[],
   metadata?: { vehicle?: string; usage?: string; mileageKm?: number }
 ): Promise<TireDiagnosis[]> {
+  const validPhotos = photos.filter(Boolean);
+  if (validPhotos.length === 0) {
+    throw new Error("NO_PHOTOS");
+  }
+
   const payload = {
-    photos: photos.filter(Boolean),
+    photos: validPhotos,
     metadata,
   };
-  const res = await fetch("/api/gemini-analyze", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(payload),
-  });
-  if (!res.ok) throw new Error("ANALYSIS_ERROR");
-  const data = await res.json();
-  if (Array.isArray(data?.diagnosis)) {
-    // Validate minimal shape; coerce RiskLevel strings
-    return data.diagnosis.map((d: any, idx: number) => ({
-      id: idx + 1,
-      position: d.position || `Llanta ${idx + 1}`,
-      health: Number(d.health ?? 70),
-      wearPatterns: Array.isArray(d.wearPatterns) ? d.wearPatterns : [],
-      alerts: Array.isArray(d.alerts)
-        ? d.alerts.map((a: any) => ({ text: String(a.text || ""), risk: (a.risk as RiskLevel) || RiskLevel.Low }))
-        : [],
-      lifeRemainingKm: d.lifeRemainingKm || { min: 8000, max: 25000 },
-      lifeRemainingMonths: d.lifeRemainingMonths || { min: 3, max: 12 },
-      recommendations: Array.isArray(d.recommendations) ? d.recommendations : [],
-      image: d.image || (photos[idx] as string | undefined) || "",
-    }));
+
+  try {
+    const res = await fetch("/api/gemini-analyze", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+
+    if (!res.ok) {
+      const errorData = await res.json().catch(() => ({}));
+      console.error("API Error:", res.status, errorData);
+      throw new Error(errorData.error || `HTTP_${res.status}`);
+    }
+
+    const data = await res.json();
+    
+    if (!data.ok) {
+      throw new Error(data.error || "API_ERROR");
+    }
+
+    if (Array.isArray(data?.diagnosis)) {
+      // Validate minimal shape; coerce RiskLevel strings
+      return data.diagnosis.map((d: any, idx: number) => ({
+        id: idx + 1,
+        position: d.position || `Llanta ${idx + 1}`,
+        health: Number(d.health ?? 70),
+        wearPatterns: Array.isArray(d.wearPatterns) ? d.wearPatterns : [],
+        alerts: Array.isArray(d.alerts)
+          ? d.alerts.map((a: any) => ({ text: String(a.text || ""), risk: (a.risk as RiskLevel) || RiskLevel.Low }))
+          : [],
+        lifeRemainingKm: d.lifeRemainingKm || { min: 8000, max: 25000 },
+        lifeRemainingMonths: d.lifeRemainingMonths || { min: 3, max: 12 },
+        recommendations: Array.isArray(d.recommendations) ? d.recommendations : [],
+        image: d.image || (photos[idx] as string | undefined) || "",
+      }));
+    }
+    
+    throw new Error("INVALID_RESPONSE");
+  } catch (err) {
+    console.error("analyzeTires error:", err);
+    throw err;
   }
-  throw new Error("INVALID_RESPONSE");
 }
