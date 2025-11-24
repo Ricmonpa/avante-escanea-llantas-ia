@@ -28,6 +28,23 @@ export default async function handler(req, res) {
     }
 
     const genAI = new GoogleGenerativeAI(apiKey);
+    
+    // Primero probar con un test simple para verificar que la API funciona
+    try {
+      console.log("Testing API connection...");
+      const testModel = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+      // No hacemos la llamada aún, solo verificamos que el modelo se crea
+      console.log("Model created successfully");
+    } catch (testError) {
+      console.error("Error creating model:", testError);
+      return res.status(500).json({ 
+        ok: false, 
+        error: "API_SETUP_ERROR",
+        message: testError.message,
+        details: "Verifica que la API de Gemini esté habilitada en Google Cloud Console"
+      });
+    }
+    
     const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
     // Construir el prompt con instrucciones claras
@@ -105,10 +122,32 @@ IMPORTANTE:
     // Agregar imágenes
     parts.push(...imageParts);
 
-    // Llamar a Gemini - formato correcto según documentación
-    const result = await model.generateContent(parts);
+    // Llamar a Gemini - probar con formato alternativo si el primero falla
+    console.log(`Calling Gemini with ${parts.length} parts (${imageParts.length} images)`);
+    
+    let result;
+    try {
+      // Intentar formato directo primero
+      result = await model.generateContent(parts);
+    } catch (formatError) {
+      console.error("Error with direct format, trying alternative:", formatError.message);
+      // Intentar formato alternativo con contents
+      try {
+        result = await model.generateContent({
+          contents: [{
+            role: "user",
+            parts: parts
+          }]
+        });
+      } catch (altError) {
+        console.error("Both formats failed");
+        throw formatError; // Lanzar el error original
+      }
+    }
+    
     const response = await result.response;
     const text = response.text();
+    console.log("Gemini response received, length:", text.length);
 
     // Limpiar y parsear JSON
     let jsonString = text.trim();
@@ -147,25 +186,53 @@ IMPORTANTE:
 
     return res.status(200).json({ ok: true, diagnosis });
   } catch (err) {
-    console.error("gemini-analyze error:", err);
+    console.error("=== GEMINI ERROR START ===");
     console.error("Error name:", err.name);
     console.error("Error message:", err.message);
     console.error("Error stack:", err.stack);
     
-    // Extraer más detalles del error si está disponible
+    // Intentar extraer más información del error
     let errorDetails = err.message || "Unknown error";
+    let errorCode = "AI_ERROR";
+    
+    // Verificar si es un error de API no habilitada
+    if (err.message && err.message.includes("overview?project")) {
+      errorCode = "API_NOT_ENABLED";
+      errorDetails = "La API de Gemini no está habilitada en tu proyecto de Google Cloud. Ve a https://console.cloud.google.com/apis/library/generativelanguage.googleapis.com y habilítala.";
+    } else if (err.message && err.message.includes("API key")) {
+      errorCode = "INVALID_API_KEY";
+      errorDetails = "La API key no es válida o no tiene permisos. Verifica en Google Cloud Console.";
+    } else if (err.message && err.message.includes("quota") || err.message && err.message.includes("quota")) {
+      errorCode = "QUOTA_EXCEEDED";
+      errorDetails = "Se ha excedido la cuota de la API. Verifica tu plan en Google Cloud Console.";
+    }
+    
+    // Extraer más detalles si están disponibles
     if (err.cause) {
+      console.error("Error cause:", JSON.stringify(err.cause, null, 2));
       errorDetails += ` | Cause: ${JSON.stringify(err.cause)}`;
     }
     if (err.response) {
+      console.error("Error response:", JSON.stringify(err.response, null, 2));
       errorDetails += ` | Response: ${JSON.stringify(err.response)}`;
     }
     
+    // Intentar acceder a propiedades adicionales del error
+    try {
+      const errorObj = err.toJSON ? err.toJSON() : {};
+      console.error("Full error object:", JSON.stringify(errorObj, null, 2));
+    } catch (e) {
+      // Ignorar si no se puede serializar
+    }
+    
+    console.error("=== GEMINI ERROR END ===");
+    
     return res.status(500).json({ 
       ok: false, 
-      error: "AI_ERROR",
+      error: errorCode,
       message: errorDetails,
-      errorType: err.name || "Error"
+      errorType: err.name || "Error",
+      fullMessage: err.message
     });
   }
 }
