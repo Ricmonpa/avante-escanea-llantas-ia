@@ -13,6 +13,15 @@ export default async function handler(req, res) {
       console.error("Missing GEMINI_API_KEY");
       return res.status(500).json({ ok: false, error: "MISSING_API_KEY" });
     }
+    
+    // Validar formato de API key (debe empezar con AIza)
+    if (!apiKey.startsWith("AIza")) {
+      console.error("Invalid API key format");
+      return res.status(500).json({ ok: false, error: "INVALID_API_KEY_FORMAT" });
+    }
+    
+    console.log(`API Key present: ${apiKey.substring(0, 10)}... (${apiKey.length} chars)`);
+    console.log(`Processing ${photos.length} photo(s)`);
 
     if (!photos || photos.length === 0) {
       return res.status(400).json({ ok: false, error: "NO_PHOTOS" });
@@ -47,14 +56,29 @@ IMPORTANTE:
     const imageParts = photos
       .slice(0, 4)
       .filter(Boolean)
-      .map((dataUrl) => {
+      .map((dataUrl, idx) => {
         if (typeof dataUrl !== "string") return null;
         
         // Extraer base64 y mimeType del dataURL
         const match = dataUrl.match(/^data:(image\/[^;]+);base64,(.+)$/);
-        if (!match) return null;
+        if (!match) {
+          console.error(`Photo ${idx + 1}: Invalid dataURL format`);
+          return null;
+        }
         
         const [, mimeType, base64Data] = match;
+        
+        // Validar tamaño (Gemini tiene límite de ~20MB por imagen)
+        const sizeInBytes = (base64Data.length * 3) / 4;
+        const sizeInMB = sizeInBytes / (1024 * 1024);
+        
+        if (sizeInMB > 20) {
+          console.error(`Photo ${idx + 1}: Too large (${sizeInMB.toFixed(2)}MB), skipping`);
+          return null;
+        }
+        
+        console.log(`Photo ${idx + 1}: ${sizeInMB.toFixed(2)}MB, type: ${mimeType}`);
+        
         return {
           inlineData: {
             data: base64Data,
@@ -81,8 +105,8 @@ IMPORTANTE:
     // Agregar imágenes
     parts.push(...imageParts);
 
-    // Llamar a Gemini
-    const result = await model.generateContent({ contents: [{ role: "user", parts }] });
+    // Llamar a Gemini - formato correcto según documentación
+    const result = await model.generateContent(parts);
     const response = await result.response;
     const text = response.text();
 
@@ -124,11 +148,24 @@ IMPORTANTE:
     return res.status(200).json({ ok: true, diagnosis });
   } catch (err) {
     console.error("gemini-analyze error:", err);
+    console.error("Error name:", err.name);
+    console.error("Error message:", err.message);
     console.error("Error stack:", err.stack);
+    
+    // Extraer más detalles del error si está disponible
+    let errorDetails = err.message || "Unknown error";
+    if (err.cause) {
+      errorDetails += ` | Cause: ${JSON.stringify(err.cause)}`;
+    }
+    if (err.response) {
+      errorDetails += ` | Response: ${JSON.stringify(err.response)}`;
+    }
+    
     return res.status(500).json({ 
       ok: false, 
       error: "AI_ERROR",
-      message: err.message 
+      message: errorDetails,
+      errorType: err.name || "Error"
     });
   }
 }
