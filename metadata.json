@@ -1,0 +1,7 @@
+{
+  "name": "AVANTE – Escanea tus llantas con IA",
+  "description": "Un distribuidor de llantas que usa visión computacional y un asistente conversacional para diagnosticar desgaste, estimar vida útil y recomendar neumáticos y servicios.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}
