@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { Button } from '../components/Button';
 import { Stepper } from '../components/Stepper';
 import { View } from '../types';
@@ -12,10 +12,10 @@ interface ScannerProps {
 
 const steps = ['Llanta 1', 'Llanta 2', 'Llanta 3', 'Llanta 4'];
 
-// Comprime la imagen usando createImageBitmap() que hace decode + resize
-// en una sola operación nativa. El peak de RAM es el bitmap ya reducido (~1.9MB),
-// nunca la imagen original (hasta 47MB+ en fotos de cámara moderna).
-const compressImage = async (file: File): Promise<string> => {
+// ─── Captura desde galería ────────────────────────────────────────────────────
+// createImageBitmap hace decode+resize en una sola operación nativa.
+// Peak de RAM = bitmap reducido (~1.9MB), nunca el archivo original (hasta 47MB+).
+const compressFromFile = async (file: File): Promise<string> => {
   const MAX_WIDTH = 800;
   const QUALITY = 0.6;
 
@@ -30,14 +30,14 @@ const compressImage = async (file: File): Promise<string> => {
 
   const ctx = canvas.getContext('2d');
   if (!ctx) {
-    bitmap.close();     // liberar antes de salir
+    bitmap.close();
     canvas.width = 0;
     canvas.height = 0;
     throw new Error('No se pudo crear contexto de canvas');
   }
 
   ctx.drawImage(bitmap, 0, 0);
-  bitmap.close();       // liberación explícita, no depende del GC
+  bitmap.close(); // liberación explícita, no depende del GC
 
   const dataUrl = canvas.toDataURL('image/jpeg', QUALITY);
   canvas.width = 0;
@@ -46,71 +46,138 @@ const compressImage = async (file: File): Promise<string> => {
   return dataUrl;
 };
 
+// ─── Captura desde video en vivo ──────────────────────────────────────────────
+// El frame ya viene a la resolución solicitada (800×600).
+// Nunca existe una imagen a resolución completa en memoria.
+const captureFromVideo = (video: HTMLVideoElement): string => {
+  const canvas = document.createElement('canvas');
+  canvas.width = video.videoWidth;
+  canvas.height = video.videoHeight;
+
+  const ctx = canvas.getContext('2d');
+  if (!ctx) {
+    canvas.width = 0;
+    canvas.height = 0;
+    throw new Error('No se pudo crear contexto de canvas');
+  }
+
+  ctx.drawImage(video, 0, 0);
+  const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
+  canvas.width = 0;
+  canvas.height = 0;
+
+  return dataUrl;
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+
 export const Scanner: React.FC<ScannerProps> = ({ onNavigate, photos, setPhotos }) => {
   const [currentStep, setCurrentStep] = useState(0);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [isCameraActive, setIsCameraActive] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const captureInputRef = useRef<HTMLInputElement>(null);
+
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const streamRef = useRef<MediaStream | null>(null);
   const uploadInputRef = useRef<HTMLInputElement>(null);
 
-  const handlePhotoTaken = async (file: File) => {
-    setIsProcessing(true);
-    setError(null);
-    
-    try {
-      // Comprimir imagen antes de guardar
-      const compressedDataUrl = await compressImage(file);
-      
-      const newPhotos = [...photos];
-      newPhotos[currentStep] = compressedDataUrl;
-      setPhotos(newPhotos);
-    } catch (err) {
-      console.error('Error procesando imagen:', err);
-      setError('No se pudo procesar la imagen. Intenta con otra foto.');
-    } finally {
-      setIsProcessing(false);
-      // Limpiar inputs para permitir seleccionar el mismo archivo de nuevo
-      if (captureInputRef.current) captureInputRef.current.value = '';
-      if (uploadInputRef.current) uploadInputRef.current.value = '';
+  // Detiene el stream y oculta el visor de cámara
+  const stopStream = useCallback(() => {
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach(t => t.stop());
+      streamRef.current = null;
     }
-  };
-  
-  const handleCapture = () => {
-    if (captureInputRef.current) {
-      captureInputRef.current.click();
+    setIsCameraActive(false);
+  }, []);
+
+  // Limpiar al desmontar el componente
+  useEffect(() => {
+    return () => stopStream();
+  }, [stopStream]);
+
+  // Conectar el stream al elemento <video> una vez que React lo renderiza
+  useEffect(() => {
+    if (isCameraActive && videoRef.current && streamRef.current) {
+      videoRef.current.srcObject = streamRef.current;
+    }
+  }, [isCameraActive]);
+
+  // ── Abrir cámara con getUserMedia ──────────────────────────────────────────
+  // El sensor nunca captura a más de 800×600 → cero imagen a resolución completa en RAM.
+  const handleOpenCamera = async () => {
+    setError(null);
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: {
+          facingMode: 'environment',
+          width: { ideal: 800 },
+          height: { ideal: 600 },
+        },
+      });
+      streamRef.current = stream;
+      setIsCameraActive(true);
+    } catch {
+      setError('No se pudo acceder a la cámara. Verifica los permisos e intenta de nuevo.');
     }
   };
 
-  const handleUpload = () => {
-    if (uploadInputRef.current) {
-      uploadInputRef.current.click();
+  // ── Tomar la foto del frame actual del video ───────────────────────────────
+  const handleCapture = () => {
+    if (!videoRef.current) return;
+    setError(null);
+    try {
+      const dataUrl = captureFromVideo(videoRef.current);
+      const newPhotos = [...photos];
+      newPhotos[currentStep] = dataUrl;
+      setPhotos(newPhotos);
+      stopStream();
+    } catch {
+      setError('No se pudo capturar la foto. Intenta de nuevo.');
     }
+  };
+
+  // ── Subir archivo desde galería ───────────────────────────────────────────
+  const handleUpload = () => {
+    if (uploadInputRef.current) uploadInputRef.current.click();
   };
 
   const handleFileSelected = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    if (file) {
-      // Validar tamaño máximo (10MB antes de comprimir)
-      if (file.size > 10 * 1024 * 1024) {
-        setError('La imagen es demasiado grande. Por favor, elige una imagen más pequeña.');
-        event.target.value = '';
-        return;
-      }
-      await handlePhotoTaken(file);
+    if (!file) return;
+
+    if (file.size > 10 * 1024 * 1024) {
+      setError('La imagen es demasiado grande. Elige una imagen más pequeña.');
+      event.target.value = '';
+      return;
+    }
+
+    setIsProcessing(true);
+    setError(null);
+    try {
+      const dataUrl = await compressFromFile(file);
+      const newPhotos = [...photos];
+      newPhotos[currentStep] = dataUrl;
+      setPhotos(newPhotos);
+    } catch {
+      setError('No se pudo procesar la imagen. Intenta con otra foto.');
+    } finally {
+      setIsProcessing(false);
+      if (uploadInputRef.current) uploadInputRef.current.value = '';
     }
   };
 
+  // ── Navegación ────────────────────────────────────────────────────────────
   const handleRetry = () => {
     const newPhotos = [...photos];
     newPhotos[currentStep] = null;
     setPhotos(newPhotos);
     setError(null);
-    // Limpiar inputs
-    if (captureInputRef.current) captureInputRef.current.value = '';
+    stopStream();
     if (uploadInputRef.current) uploadInputRef.current.value = '';
   };
 
   const handleNext = () => {
+    stopStream();
     if (currentStep < steps.length - 1) {
       setCurrentStep(currentStep + 1);
     } else {
@@ -118,101 +185,128 @@ export const Scanner: React.FC<ScannerProps> = ({ onNavigate, photos, setPhotos 
     }
   };
 
+  // ── Render ────────────────────────────────────────────────────────────────
   return (
     <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-12">
       <div className="max-w-3xl mx-auto">
+
         <div className="mb-12">
-            <Stepper steps={steps} currentStep={currentStep} />
+          <Stepper steps={steps} currentStep={currentStep} />
         </div>
-        
-        <h2 className="text-3xl font-bold text-avante-blue text-center mb-2">Captura de la {steps[currentStep]}</h2>
+
+        <h2 className="text-3xl font-bold text-avante-blue text-center mb-2">
+          Captura de la {steps[currentStep]}
+        </h2>
         <p className="text-center text-avante-gray-200 mb-6">
-            {isProcessing 
-                ? "Procesando imagen..."
-                : photos[currentStep] === null 
-                    ? "Sigue las guías en pantalla para una mejor calidad de imagen."
-                    : "Revisa la imagen. Si es correcta, continúa."}
+          {isProcessing
+            ? 'Procesando imagen...'
+            : isCameraActive
+            ? 'Enfoca la banda de rodadura y presiona Tomar Foto.'
+            : photos[currentStep] !== null
+            ? 'Revisa la imagen. Si es correcta, continúa.'
+            : 'Sigue las guías en pantalla para una mejor calidad de imagen.'}
         </p>
 
         {error && (
-            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm text-center">
-                {error}
-            </div>
+          <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm text-center">
+            {error}
+          </div>
         )}
 
+        {/* Visor */}
         <div className="relative aspect-video bg-avante-gray-300 rounded-lg overflow-hidden mb-6 flex items-center justify-center text-white">
-            {photos[currentStep] ? (
-                <img src={photos[currentStep]!} alt={`Foto de la ${steps[currentStep]}`} className="w-full h-full object-cover" />
-            ) : (
-                <>
-                    {/* Camera View Simulation */}
-                    <CameraIcon className="w-24 h-24 opacity-20" />
-
-                    {/* Overlay Guides */}
-                    <div className="absolute inset-0 border-4 border-dashed border-avante-green/50 rounded-lg m-8 flex flex-col items-center justify-center p-4">
-                        <p className="font-bold bg-black/50 px-2 py-1 rounded">Enfoca la banda de rodadura</p>
-                        <div className="absolute bottom-4 text-xs text-center space-y-1">
-                            <p>• Asegura buena iluminación</p>
-                            <p>• Evita imágenes borrosas</p>
-                        </div>
-                    </div>
-                </>
-            )}
+          {isCameraActive ? (
+            <video
+              ref={videoRef}
+              autoPlay
+              playsInline
+              muted
+              className="w-full h-full object-cover"
+            />
+          ) : photos[currentStep] !== null ? (
+            <img
+              src={photos[currentStep]!}
+              alt={`Foto de la ${steps[currentStep]}`}
+              className="w-full h-full object-cover"
+            />
+          ) : (
+            <>
+              <CameraIcon className="w-24 h-24 opacity-20" />
+              <div className="absolute inset-0 border-4 border-dashed border-avante-green/50 rounded-lg m-8 flex flex-col items-center justify-center p-4">
+                <p className="font-bold bg-black/50 px-2 py-1 rounded">Enfoca la banda de rodadura</p>
+                <div className="absolute bottom-4 text-xs text-center space-y-1">
+                  <p>• Asegura buena iluminación</p>
+                  <p>• Evita imágenes borrosas</p>
+                </div>
+              </div>
+            </>
+          )}
         </div>
-        
-        {photos[currentStep] === null ? (
-            <div className="flex flex-col md:flex-row gap-4 justify-center">
-                <Button 
-                    onClick={handleCapture} 
-                    variant="primary" 
-                    className="w-full md:w-auto text-lg"
-                    disabled={isProcessing}
-                >
-                    <span className="flex items-center justify-center gap-2">
-                        <CameraIcon className="w-6 h-6"/>
-                        {isProcessing ? 'Procesando...' : 'Capturar Foto'}
-                    </span>
-                </Button>
-                <Button 
-                    onClick={handleUpload} 
-                    variant="secondary" 
-                    className="w-full md:w-auto text-lg"
-                    disabled={isProcessing}
-                >
-                    Subir Foto Existente
-                </Button>
-                {/* Input separado para captura con cámara */}
-                <input
-                    type="file"
-                    ref={captureInputRef}
-                    onChange={handleFileSelected}
-                    className="hidden"
-                    accept="image/*"
-                    capture="environment"
-                />
-                {/* Input separado para subir archivo existente (sin capture) */}
-                <input
-                    type="file"
-                    ref={uploadInputRef}
-                    onChange={handleFileSelected}
-                    className="hidden"
-                    accept="image/*"
-                />
-            </div>
+
+        {/* Controles */}
+        {photos[currentStep] !== null ? (
+          // Foto tomada → reintentar o continuar
+          <div className="flex flex-col md:flex-row gap-4 justify-center">
+            <Button onClick={handleRetry} variant="secondary" className="w-full md:w-auto text-lg">
+              Reintentar
+            </Button>
+            <Button onClick={handleNext} variant="primary" className="w-full md:w-auto text-lg">
+              {currentStep < steps.length - 1 ? 'Siguiente Llanta' : 'Finalizar y Continuar'}
+            </Button>
+          </div>
+        ) : isCameraActive ? (
+          // Cámara activa → tomar foto o cancelar
+          <div className="flex flex-col md:flex-row gap-4 justify-center">
+            <Button
+              onClick={() => { stopStream(); setError(null); }}
+              variant="secondary"
+              className="w-full md:w-auto text-lg"
+            >
+              Cancelar
+            </Button>
+            <Button onClick={handleCapture} variant="primary" className="w-full md:w-auto text-lg">
+              <span className="flex items-center justify-center gap-2">
+                <CameraIcon className="w-6 h-6" />
+                Tomar Foto
+              </span>
+            </Button>
+          </div>
         ) : (
-            <div className="flex flex-col md:flex-row gap-4 justify-center">
-                <Button onClick={handleRetry} variant="secondary" className="w-full md:w-auto text-lg">
-                    Reintentar
-                </Button>
-                <Button onClick={handleNext} variant="primary" className="w-full md:w-auto text-lg">
-                    {currentStep < steps.length - 1 ? 'Siguiente Llanta' : 'Finalizar y Continuar'}
-                </Button>
-            </div>
+          // Sin foto, sin cámara → opciones iniciales
+          <div className="flex flex-col md:flex-row gap-4 justify-center">
+            <Button
+              onClick={handleOpenCamera}
+              variant="primary"
+              className="w-full md:w-auto text-lg"
+              disabled={isProcessing}
+            >
+              <span className="flex items-center justify-center gap-2">
+                <CameraIcon className="w-6 h-6" />
+                Capturar Foto
+              </span>
+            </Button>
+            <Button
+              onClick={handleUpload}
+              variant="secondary"
+              className="w-full md:w-auto text-lg"
+              disabled={isProcessing}
+            >
+              {isProcessing ? 'Procesando...' : 'Subir Foto Existente'}
+            </Button>
+            <input
+              type="file"
+              ref={uploadInputRef}
+              onChange={handleFileSelected}
+              className="hidden"
+              accept="image/*"
+            />
+          </div>
         )}
 
         <p className="text-xs text-avante-gray-200 text-center mt-8">
-            Procesamos tus imágenes de manera segura y anónima. Tu privacidad es importante para nosotros.
+          Procesamos tus imágenes de manera segura y anónima. Tu privacidad es importante para nosotros.
         </p>
+
       </div>
     </div>
   );
