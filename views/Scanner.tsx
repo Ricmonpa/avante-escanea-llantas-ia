@@ -13,49 +13,56 @@ interface ScannerProps {
 const steps = ['Llanta 1', 'Llanta 2', 'Llanta 3', 'Llanta 4'];
 
 // Función para comprimir imagen y reducir uso de memoria
-const compressImage = (file: File, maxWidth: number = 1200, quality: number = 0.7): Promise<string> => {
+const compressImage = (file: File, maxWidth: number = 800, quality: number = 0.6): Promise<string> => {
   return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const img = new Image();
-      img.onload = () => {
-        const canvas = document.createElement('canvas');
-        let width = img.width;
-        let height = img.height;
+    const objectUrl = URL.createObjectURL(file);
+    const img = new Image();
 
-        // Redimensionar si es necesario
-        if (width > maxWidth) {
-          height = (height * maxWidth) / width;
-          width = maxWidth;
-        }
+    img.onload = () => {
+      // Liberar el object URL tan pronto como la imagen cargó
+      URL.revokeObjectURL(objectUrl);
 
-        canvas.width = width;
-        canvas.height = height;
+      let width = img.width;
+      let height = img.height;
 
-        const ctx = canvas.getContext('2d');
-        if (!ctx) {
-          reject(new Error('No se pudo crear contexto de canvas'));
-          return;
-        }
+      if (width > maxWidth) {
+        height = Math.round((height * maxWidth) / width);
+        width = maxWidth;
+      }
 
-        ctx.drawImage(img, 0, 0, width, height);
-        
-        try {
-          const compressedDataUrl = canvas.toDataURL('image/jpeg', quality);
-          resolve(compressedDataUrl);
-        } catch (err) {
-          reject(err);
-        }
-      };
-      img.onerror = () => reject(new Error('Error al cargar imagen'));
-      if (typeof e.target?.result === 'string') {
-        img.src = e.target.result;
-      } else {
-        reject(new Error('Error al leer archivo'));
+      const canvas = document.createElement('canvas');
+      canvas.width = width;
+      canvas.height = height;
+
+      const ctx = canvas.getContext('2d');
+      if (!ctx) {
+        canvas.width = 0;
+        canvas.height = 0;
+        reject(new Error('No se pudo crear contexto de canvas'));
+        return;
+      }
+
+      ctx.drawImage(img, 0, 0, width, height);
+
+      try {
+        const compressedDataUrl = canvas.toDataURL('image/jpeg', quality);
+        // Limpiar canvas para liberar memoria
+        canvas.width = 0;
+        canvas.height = 0;
+        resolve(compressedDataUrl);
+      } catch (err) {
+        canvas.width = 0;
+        canvas.height = 0;
+        reject(err);
       }
     };
-    reader.onerror = () => reject(new Error('Error al leer archivo'));
-    reader.readAsDataURL(file);
+
+    img.onerror = () => {
+      URL.revokeObjectURL(objectUrl);
+      reject(new Error('Error al cargar imagen'));
+    };
+
+    img.src = objectUrl;
   });
 };
 
