@@ -12,58 +12,38 @@ interface ScannerProps {
 
 const steps = ['Llanta 1', 'Llanta 2', 'Llanta 3', 'Llanta 4'];
 
-// Función para comprimir imagen y reducir uso de memoria
-const compressImage = (file: File, maxWidth: number = 800, quality: number = 0.6): Promise<string> => {
-  return new Promise((resolve, reject) => {
-    const objectUrl = URL.createObjectURL(file);
-    const img = new Image();
+// Comprime la imagen usando createImageBitmap() que hace decode + resize
+// en una sola operación nativa. El peak de RAM es el bitmap ya reducido (~1.9MB),
+// nunca la imagen original (hasta 47MB+ en fotos de cámara moderna).
+const compressImage = async (file: File): Promise<string> => {
+  const MAX_WIDTH = 800;
+  const QUALITY = 0.6;
 
-    img.onload = () => {
-      // Liberar el object URL tan pronto como la imagen cargó
-      URL.revokeObjectURL(objectUrl);
-
-      let width = img.width;
-      let height = img.height;
-
-      if (width > maxWidth) {
-        height = Math.round((height * maxWidth) / width);
-        width = maxWidth;
-      }
-
-      const canvas = document.createElement('canvas');
-      canvas.width = width;
-      canvas.height = height;
-
-      const ctx = canvas.getContext('2d');
-      if (!ctx) {
-        canvas.width = 0;
-        canvas.height = 0;
-        reject(new Error('No se pudo crear contexto de canvas'));
-        return;
-      }
-
-      ctx.drawImage(img, 0, 0, width, height);
-
-      try {
-        const compressedDataUrl = canvas.toDataURL('image/jpeg', quality);
-        // Limpiar canvas para liberar memoria
-        canvas.width = 0;
-        canvas.height = 0;
-        resolve(compressedDataUrl);
-      } catch (err) {
-        canvas.width = 0;
-        canvas.height = 0;
-        reject(err);
-      }
-    };
-
-    img.onerror = () => {
-      URL.revokeObjectURL(objectUrl);
-      reject(new Error('Error al cargar imagen'));
-    };
-
-    img.src = objectUrl;
+  const bitmap = await createImageBitmap(file, {
+    resizeWidth: MAX_WIDTH,
+    resizeQuality: 'medium',
   });
+
+  const canvas = document.createElement('canvas');
+  canvas.width = bitmap.width;
+  canvas.height = bitmap.height;
+
+  const ctx = canvas.getContext('2d');
+  if (!ctx) {
+    bitmap.close();     // liberar antes de salir
+    canvas.width = 0;
+    canvas.height = 0;
+    throw new Error('No se pudo crear contexto de canvas');
+  }
+
+  ctx.drawImage(bitmap, 0, 0);
+  bitmap.close();       // liberación explícita, no depende del GC
+
+  const dataUrl = canvas.toDataURL('image/jpeg', QUALITY);
+  canvas.width = 0;
+  canvas.height = 0;
+
+  return dataUrl;
 };
 
 export const Scanner: React.FC<ScannerProps> = ({ onNavigate, photos, setPhotos }) => {
