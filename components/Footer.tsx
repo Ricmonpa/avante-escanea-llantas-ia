@@ -1,7 +1,8 @@
 import React from 'react';
 import { AvanteLogo } from './icons/AvanteLogo';
 
-export const Footer: React.FC = () => {
+export const Footer: React.FC<{ hidden?: boolean }> = ({ hidden }) => {
+  if (hidden) return null;
   return (
     <footer className="bg-avante-gray-300 text-white">
       <div className="container mx-auto py-8 px-4 sm:px-6 lg:px-8">

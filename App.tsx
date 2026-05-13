@@ -16,6 +16,7 @@ import { Fleets } from './views/Fleets';
 const App: React.FC = () => {
   const [currentView, setCurrentView] = useState<View>('landing');
   const [scannedPhotos, setScannedPhotos] = useState<(string | null)[]>(Array(4).fill(null));
+  const isEmbed = new URLSearchParams(window.location.search).has('embed');
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -54,11 +55,11 @@ const App: React.FC = () => {
 
   return (
     <div className="flex flex-col min-h-screen">
-      <Header onNavigate={navigate} />
+      <Header onNavigate={navigate} hidden={isEmbed} />
       <main className="flex-grow">
         {renderView()}
       </main>
-      <Footer />
+      <Footer hidden={isEmbed} />
     </div>
   );
 };

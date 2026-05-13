@@ -4,9 +4,11 @@ import { AvanteLogo } from './icons/AvanteLogo';
 
 interface HeaderProps {
     onNavigate: (view: View) => void;
+    hidden?: boolean;
 }
 
-export const Header: React.FC<HeaderProps> = ({ onNavigate }) => {
+export const Header: React.FC<HeaderProps> = ({ onNavigate, hidden }) => {
+  if (hidden) return null;
   return (
     <header className="bg-white shadow-sm sticky top-0 z-50">
       <nav className="container mx-auto px-4 sm:px-6 lg:px-8">
