@@ -11,6 +11,13 @@ export type View =
   | 'dashboard' 
   | 'fleets';
 
+export interface DiagnosisMeta {
+  mileageKm?: number;
+  location?: string;
+  usage?: string;
+  email?: string;
+}
+
 export enum RiskLevel {
   High = 'Alto',
   Medium = 'Medio',

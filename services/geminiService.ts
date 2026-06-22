@@ -1,5 +1,5 @@
 
-import { ChatMessage, TireDiagnosis, RiskLevel } from "../types";
+import { ChatMessage, TireDiagnosis, RiskLevel, DiagnosisMeta } from "../types";
 
 // This is a MOCK service. In a real application, you would implement the Gemini API call here.
 // The API key would be handled by environment variables and not be exposed client-side.
@@ -32,10 +32,34 @@ export const getAssistantResponse = async (userMessage: string, history: ChatMes
   });
 };
 
+// Traduce el error técnico del análisis a un mensaje claro para el usuario final.
+export function friendlyDiagnosisError(err: unknown): string {
+  const code = err instanceof Error ? err.message : String(err);
+
+  const messages: Record<string, string> = {
+    NO_PHOTOS: 'No recibimos ninguna foto. Vuelve a escanear tus llantas e intenta de nuevo.',
+    INVALID_IMAGES: 'Las imágenes no se pudieron leer. Toma las fotos otra vez con buena iluminación.',
+    MISSING_API_KEY: 'El servicio de diagnóstico no está configurado correctamente. Inténtalo más tarde.',
+    INVALID_API_KEY_FORMAT: 'El servicio de diagnóstico no está configurado correctamente. Inténtalo más tarde.',
+    INVALID_API_KEY: 'El servicio de diagnóstico no está configurado correctamente. Inténtalo más tarde.',
+    API_NOT_ENABLED: 'El servicio de diagnóstico no está disponible en este momento. Inténtalo más tarde.',
+    QUOTA_EXCEEDED: 'Estamos recibiendo muchas solicitudes en este momento. Espera un minuto e inténtalo de nuevo.',
+    METHOD_NOT_ALLOWED: 'Ocurrió un problema técnico. Inténtalo de nuevo.',
+    INVALID_RESPONSE: 'No pudimos interpretar el análisis. Intenta de nuevo con fotos más nítidas.',
+    AI_ERROR: 'No pudimos analizar las imágenes en este momento. Intenta de nuevo en unos segundos.',
+  };
+
+  if (messages[code]) return messages[code];
+  if (code.startsWith('HTTP_')) {
+    return 'No pudimos conectar con el servicio de diagnóstico. Revisa tu conexión e intenta de nuevo.';
+  }
+  return 'No pudimos analizar las imágenes en este momento. Intenta de nuevo en unos segundos.';
+}
+
 // Real analysis via serverless endpoint. Sends photos (as data URLs) and optional metadata.
 export async function analyzeTires(
   photos: (string | null)[],
-  metadata?: { vehicle?: string; usage?: string; mileageKm?: number }
+  metadata?: DiagnosisMeta
 ): Promise<TireDiagnosis[]> {
   const validPhotos = photos.filter(Boolean);
   if (validPhotos.length === 0) {

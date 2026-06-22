@@ -22,7 +22,6 @@ export const Header: React.FC<HeaderProps> = ({ onNavigate, hidden }) => {
             <div className="ml-10 flex items-baseline space-x-4">
               <a onClick={() => onNavigate('scanner')} className="text-avante-gray-300 hover:text-avante-blue px-3 py-2 rounded-md text-sm font-medium cursor-pointer">Escanear</a>
               <a onClick={() => onNavigate('dashboard')} className="text-avante-gray-300 hover:text-avante-blue px-3 py-2 rounded-md text-sm font-medium cursor-pointer">Mi Panel</a>
-              <a onClick={() => onNavigate('fleets')} className="text-avante-gray-300 hover:text-avante-blue px-3 py-2 rounded-md text-sm font-medium cursor-pointer">Flotillas</a>
             </div>
           </div>
         </div>

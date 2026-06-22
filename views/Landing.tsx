@@ -20,9 +20,9 @@ export const Landing: React.FC<LandingProps> = ({ onNavigate }) => {
                 Diagnóstico gratuito, recomendaciones y agenda en minutos.
             </p>
             <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">
-                <Button 
-                    onClick={() => onNavigate('scanner')} 
-                    variant="primary" 
+                <Button
+                    onClick={() => onNavigate('scanner')}
+                    variant="primary"
                     className="text-xl px-10 py-5 w-full sm:w-auto shadow-lg hover:shadow-xl transform hover:-translate-y-1 transition-all duration-300"
                 >
                     <span className="flex items-center justify-center gap-3">
@@ -30,13 +30,14 @@ export const Landing: React.FC<LandingProps> = ({ onNavigate }) => {
                         Escanear mis llantas
                     </span>
                 </Button>
-                <Button 
-                    onClick={() => onNavigate('fleets')} 
-                    variant="secondary" 
-                    className="text-lg px-8 py-4 w-full sm:w-auto"
-                >
-                    Para flotillas
-                </Button>
+            </div>
+
+            {/* Banner informativo de tipos de llanta */}
+            <div className="mt-10 max-w-3xl mx-auto bg-avante-blue/5 border border-avante-blue/20 rounded-xl px-6 py-5">
+                <p className="text-base md:text-lg text-avante-gray-300">
+                    <span className="font-bold text-avante-blue">Escanea cualquier tipo de llanta:</span>{' '}
+                    autos, camionetas, camión, 4x4 y flotillas. Un solo escáner para todos tus vehículos.
+                </p>
             </div>
         </div>
       </section>

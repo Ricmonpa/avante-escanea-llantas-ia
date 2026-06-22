@@ -1,25 +1,47 @@
 
 import React, { useState } from 'react';
 import { Button } from '../components/Button';
-import { View } from '../types';
+import { View, DiagnosisMeta } from '../types';
 import { Card } from '../components/Card';
 import { SkeletonLoader } from '../components/SkeletonLoader';
 
 interface QuestionnaireProps {
   onNavigate: (view: View) => void;
+  setMeta: (meta: DiagnosisMeta) => void;
 }
 
-export const Questionnaire: React.FC<QuestionnaireProps> = ({ onNavigate }) => {
+const USAGE_OPTIONS = [
+  'Uso Urbano / Ciudad',
+  'Uso en Carretera / Viajes Largos',
+  'Uso Mixto / Todoterreno Ligero',
+  'Uso Off-Road / 4x4 Extremo',
+  'Uso Comercial / Trabajo Pesado y Carga',
+  'Uso Deportivo / Alto Rendimiento',
+];
+
+export const Questionnaire: React.FC<QuestionnaireProps> = ({ onNavigate, setMeta }) => {
   const [isLoading, setIsLoading] = useState(false);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Capturamos la información para enviarla junto al diagnóstico de IA.
+    const form = e.currentTarget as HTMLFormElement;
+    const data = new FormData(form);
+    const mileage = data.get('mileage');
+    setMeta({
+      mileageKm: mileage ? Number(mileage) : undefined,
+      location: (data.get('location') as string) || undefined,
+      usage: (data.get('usage') as string) || undefined,
+      email: (data.get('email') as string) || undefined,
+    });
+
     setIsLoading(true);
-    // Simulate API call for diagnosis
+    // Pequeña transición antes de pasar al diagnóstico real (IA).
     setTimeout(() => {
       setIsLoading(false);
       onNavigate('diagnosis');
-    }, 3000);
+    }, 800);
   };
 
   if (isLoading) {
@@ -57,19 +79,15 @@ export const Questionnaire: React.FC<QuestionnaireProps> = ({ onNavigate }) => {
             <div>
                 <label className="block text-sm font-medium text-avante-gray-300">Tipo de uso principal</label>
                 <select id="usage" name="usage" className="mt-1 block w-full rounded-md border-avante-gray-100 shadow-sm focus:border-avante-blue focus:ring-avante-blue sm:text-sm" required>
-                    <option>Urbano</option>
-                    <option>Carretera</option>
-                    <option>Mixto</option>
+                    {USAGE_OPTIONS.map(opt => (
+                        <option key={opt} value={opt}>{opt}</option>
+                    ))}
                 </select>
             </div>
-            
-             <div>
-                <label className="block text-sm font-medium text-avante-gray-300">Estilo de manejo</label>
-                <select id="drivingStyle" name="drivingStyle" className="mt-1 block w-full rounded-md border-avante-gray-100 shadow-sm focus:border-avante-blue focus:ring-avante-blue sm:text-sm" required>
-                    <option>Conservador</option>
-                    <option>Normal</option>
-                    <option>Deportivo</option>
-                </select>
+
+            <div>
+                <label htmlFor="email" className="block text-sm font-medium text-avante-gray-300">¿Quieres enterarte de nuestras ofertas? Ingresa tu email (Opcional)</label>
+                <input type="email" name="email" id="email" className="mt-1 block w-full rounded-md border-avante-gray-100 shadow-sm focus:border-avante-blue focus:ring-avante-blue sm:text-sm" placeholder="tucorreo@ejemplo.com" />
             </div>
 
             <div className="relative flex items-start">

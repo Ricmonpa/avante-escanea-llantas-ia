@@ -3,8 +3,8 @@ import { Button } from '../components/Button';
 import { Card } from '../components/Card';
 import { ProgressBar } from '../components/ProgressBar';
 import { RiskChip } from '../components/RiskChip';
-import { TireDiagnosis, RiskLevel, View } from '../types';
-import { analyzeTires } from '../services/geminiService';
+import { TireDiagnosis, RiskLevel, View, DiagnosisMeta } from '../types';
+import { analyzeTires, friendlyDiagnosisError } from '../services/geminiService';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -274,29 +274,33 @@ const FullDiagnosis: React.FC<FullDiagnosisProps> = ({ diagnosis, scannedPhotos,
 interface DiagnosisResultProps {
   onNavigate: (view: View) => void;
   scannedPhotos: (string | null)[];
+  meta?: DiagnosisMeta;
 }
 
-export const DiagnosisResult: React.FC<DiagnosisResultProps> = ({ onNavigate, scannedPhotos }) => {
+export const DiagnosisResult: React.FC<DiagnosisResultProps> = ({ onNavigate, scannedPhotos, meta }) => {
   const [diagnosis, setDiagnosis] = useState<TireDiagnosis[] | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [gateUnlocked, setGateUnlocked] = useState(false);
+  const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
     let mounted = true;
+    setLoading(true);
+    setError(null);
     (async () => {
       try {
-        const result = await analyzeTires(scannedPhotos);
+        const result = await analyzeTires(scannedPhotos, meta);
         if (mounted) setDiagnosis(result);
       } catch (e) {
-        console.error(e);
-        if (mounted) setError('No pudimos analizar las imágenes. Intenta de nuevo.');
+        console.error('Diagnosis error:', e);
+        if (mounted) setError(friendlyDiagnosisError(e));
       } finally {
         if (mounted) setLoading(false);
       }
     })();
     return () => { mounted = false; };
-  }, []);
+  }, [attempt]);
 
   return (
     <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-12">
@@ -310,11 +314,17 @@ export const DiagnosisResult: React.FC<DiagnosisResultProps> = ({ onNavigate, sc
 
         {/* 2. Error sin diagnóstico */}
         {!loading && error && !diagnosis && (
-          <Card className="text-center py-8">
-            <p className="text-avante-gray-300 mb-4">{error}</p>
-            <Button onClick={() => onNavigate('scanner')} variant="secondary">
-              Volver a escanear
-            </Button>
+          <Card className="text-center py-8 max-w-xl mx-auto">
+            <span className="text-4xl">⚠️</span>
+            <p className="text-avante-gray-300 mt-3 mb-6">{error}</p>
+            <div className="flex justify-center flex-wrap gap-3">
+              <Button onClick={() => setAttempt(a => a + 1)} variant="primary">
+                Reintentar análisis
+              </Button>
+              <Button onClick={() => onNavigate('scanner')} variant="secondary">
+                Volver a escanear
+              </Button>
+            </div>
           </Card>
         )}
 

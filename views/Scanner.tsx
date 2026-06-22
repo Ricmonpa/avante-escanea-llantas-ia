@@ -186,6 +186,56 @@ export const Scanner: React.FC<ScannerProps> = ({ onNavigate, photos, setPhotos 
   };
 
   // ── Render ────────────────────────────────────────────────────────────────
+
+  // Cámara a pantalla completa: el video ocupa todo el viewport con guía y controles
+  // superpuestos. Mejora la experiencia al capturar (antes solo se veía un recuadro).
+  if (isCameraActive) {
+    return (
+      <div className="fixed inset-0 z-[100] bg-black flex flex-col">
+        <video
+          ref={videoRef}
+          autoPlay
+          playsInline
+          muted
+          className="absolute inset-0 w-full h-full object-cover"
+        />
+
+        {/* Guía de encuadre */}
+        <div className="absolute inset-0 pointer-events-none flex flex-col items-center justify-center p-6">
+          <div className="w-full max-w-md aspect-[4/3] border-4 border-dashed border-avante-green/70 rounded-2xl" />
+          <p className="mt-4 font-bold text-white bg-black/50 px-3 py-1 rounded text-center">
+            Enfoca la banda de rodadura de la {steps[currentStep]}
+          </p>
+        </div>
+
+        {error && (
+          <div className="absolute top-6 left-1/2 -translate-x-1/2 w-[90%] max-w-md p-3 bg-red-600/90 rounded-lg text-white text-sm text-center">
+            {error}
+          </div>
+        )}
+
+        {/* Controles inferiores */}
+        <div className="absolute bottom-0 inset-x-0 p-6 pb-10 bg-gradient-to-t from-black/80 to-transparent">
+          <div className="flex items-center justify-center gap-4 max-w-md mx-auto">
+            <Button
+              onClick={() => { stopStream(); setError(null); }}
+              variant="secondary"
+              className="flex-1 text-lg"
+            >
+              Cancelar
+            </Button>
+            <Button onClick={handleCapture} variant="primary" className="flex-1 text-lg">
+              <span className="flex items-center justify-center gap-2">
+                <CameraIcon className="w-6 h-6" />
+                Tomar Foto
+              </span>
+            </Button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-12">
       <div className="max-w-3xl mx-auto">
@@ -207,6 +257,19 @@ export const Scanner: React.FC<ScannerProps> = ({ onNavigate, photos, setPhotos 
             : 'Sigue las guías en pantalla para una mejor calidad de imagen.'}
         </p>
 
+        {/* Banner informativo: cómo tomar la foto */}
+        {!isCameraActive && photos[currentStep] === null && (
+          <div className="mb-6 bg-avante-blue/5 border border-avante-blue/20 rounded-xl p-4">
+            <p className="font-bold text-avante-blue mb-1">📸 ¿Cómo tomar la foto correcta?</p>
+            <p className="text-sm text-avante-gray-300">
+              Fotografía solo la <span className="font-semibold">banda de rodadura</span>: es la
+              superficie de la llanta que toca el piso, donde están los dibujos y canales.
+              No tomes foto a toda la llanta ni al auto completo. Acércate, busca buena luz y
+              que la imagen quede nítida.
+            </p>
+          </div>
+        )}
+
         {error && (
           <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm text-center">
             {error}
@@ -215,15 +278,7 @@ export const Scanner: React.FC<ScannerProps> = ({ onNavigate, photos, setPhotos 
 
         {/* Visor */}
         <div className="relative aspect-video bg-avante-gray-300 rounded-lg overflow-hidden mb-6 flex items-center justify-center text-white">
-          {isCameraActive ? (
-            <video
-              ref={videoRef}
-              autoPlay
-              playsInline
-              muted
-              className="w-full h-full object-cover"
-            />
-          ) : photos[currentStep] !== null ? (
+          {photos[currentStep] !== null ? (
             <img
               src={photos[currentStep]!}
               alt={`Foto de la ${steps[currentStep]}`}
@@ -254,25 +309,8 @@ export const Scanner: React.FC<ScannerProps> = ({ onNavigate, photos, setPhotos 
               {currentStep < steps.length - 1 ? 'Siguiente Llanta' : 'Finalizar y Continuar'}
             </Button>
           </div>
-        ) : isCameraActive ? (
-          // Cámara activa → tomar foto o cancelar
-          <div className="flex flex-col md:flex-row gap-4 justify-center">
-            <Button
-              onClick={() => { stopStream(); setError(null); }}
-              variant="secondary"
-              className="w-full md:w-auto text-lg"
-            >
-              Cancelar
-            </Button>
-            <Button onClick={handleCapture} variant="primary" className="w-full md:w-auto text-lg">
-              <span className="flex items-center justify-center gap-2">
-                <CameraIcon className="w-6 h-6" />
-                Tomar Foto
-              </span>
-            </Button>
-          </div>
         ) : (
-          // Sin foto, sin cámara → opciones iniciales
+          // Sin foto → opciones iniciales (la cámara activa se muestra a pantalla completa)
           <div className="flex flex-col md:flex-row gap-4 justify-center">
             <Button
               onClick={handleOpenCamera}

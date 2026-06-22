@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View } from './types';
+import { View, DiagnosisMeta } from './types';
 import { Header } from './components/Header';
 import { Footer } from './components/Footer';
 import { Landing } from './views/Landing';
@@ -16,6 +16,7 @@ import { Fleets } from './views/Fleets';
 const App: React.FC = () => {
   const [currentView, setCurrentView] = useState<View>('landing');
   const [scannedPhotos, setScannedPhotos] = useState<(string | null)[]>(Array(4).fill(null));
+  const [diagnosisMeta, setDiagnosisMeta] = useState<DiagnosisMeta | undefined>(undefined);
   const isEmbed = new URLSearchParams(window.location.search).has('embed');
 
   useEffect(() => {
@@ -33,9 +34,9 @@ const App: React.FC = () => {
       case 'scanner':
         return <Scanner onNavigate={navigate} photos={scannedPhotos} setPhotos={setScannedPhotos} />;
       case 'questionnaire':
-        return <Questionnaire onNavigate={navigate} />;
+        return <Questionnaire onNavigate={navigate} setMeta={setDiagnosisMeta} />;
       case 'diagnosis':
-        return <DiagnosisResult onNavigate={navigate} scannedPhotos={scannedPhotos} />;
+        return <DiagnosisResult onNavigate={navigate} scannedPhotos={scannedPhotos} meta={diagnosisMeta} />;
       case 'recommendations':
         return <Recommendations onNavigate={navigate} />;
       case 'assistant':
