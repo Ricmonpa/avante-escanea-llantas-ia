@@ -44,10 +44,11 @@ const LoadingScreen: React.FC = () => (
 
 interface GateProps {
   diagnosis: TireDiagnosis[];
+  email?: string;
   onUnlock: () => void;
 }
 
-const WhatsAppGate: React.FC<GateProps> = ({ diagnosis, onUnlock }) => {
+const WhatsAppGate: React.FC<GateProps> = ({ diagnosis, email, onUnlock }) => {
   const [phone, setPhone] = useState('');
   const [status, setStatus] = useState<'idle' | 'sending'>('idle');
   const [errorMsg, setErrorMsg] = useState('');
@@ -70,7 +71,7 @@ const WhatsAppGate: React.FC<GateProps> = ({ diagnosis, onUnlock }) => {
       await fetch('/api/alert', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone: digits, diagnosis }),
+        body: JSON.stringify({ phone: digits, diagnosis, email }),
       });
     } catch {
       // silencioso — igual abre el diagnóstico
@@ -330,7 +331,7 @@ export const DiagnosisResult: React.FC<DiagnosisResultProps> = ({ onNavigate, sc
 
         {/* 3. Gate — teaser + WhatsApp */}
         {!loading && diagnosis && !gateUnlocked && (
-          <WhatsAppGate diagnosis={diagnosis} onUnlock={() => setGateUnlocked(true)} />
+          <WhatsAppGate diagnosis={diagnosis} email={meta?.email} onUnlock={() => setGateUnlocked(true)} />
         )}
 
         {/* 4. Diagnóstico completo */}

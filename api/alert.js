@@ -3,7 +3,7 @@ export default async function handler(req, res) {
     return res.status(405).json({ ok: false, error: "METHOD_NOT_ALLOWED" });
   }
 
-  const { phone, diagnosis } = req.body || {};
+  const { phone, diagnosis, email } = req.body || {};
 
   if (!phone) {
     return res.status(400).json({ ok: false, error: "MISSING_PHONE" });
@@ -21,9 +21,26 @@ export default async function handler(req, res) {
     return res.status(500).json({ ok: false, error: "MISSING_TWILIO_CONFIG" });
   }
 
-  // Normalizar número: asegurar formato internacional con whatsapp: prefix
-  const rawPhone = String(phone).replace(/\D/g, "");
-  const toNumber = `whatsapp:+${rawPhone}`;
+  // ── Normalización de número a formato internacional mexicano (E.164) ─────────
+  // El usuario suele escribir solo los 10 dígitos (ej. "3312345678") sin lada país.
+  // WhatsApp/Twilio exige país. México = +52. Cubrimos los casos típicos:
+  //   3312345678        → +523312345678   (10 dígitos: nacional MX, anteponemos 52)
+  //   523312345678      → +523312345678   (ya trae 52)
+  //   5213312345678     → +5213312345678  (formato antiguo con 1, lo respetamos)
+  //   +52 33 1234 5678  → +523312345678
+  let digits = String(phone).replace(/\D/g, "");
+  digits = digits.replace(/^0+/, ""); // quita ceros iniciales (00 internacional o 0 troncal)
+
+  if (digits.length === 10) {
+    digits = "52" + digits;            // número nacional → agrega lada de país MX
+  }
+
+  if (!/^52\d{10,11}$/.test(digits)) {
+    console.error(`Invalid MX phone after normalize: ${digits}`);
+    return res.status(400).json({ ok: false, error: "INVALID_PHONE" });
+  }
+
+  const toNumber = `whatsapp:+${digits}`;
 
   // Construir resumen del diagnóstico
   const criticalTires = diagnosis.filter(
@@ -80,7 +97,10 @@ export default async function handler(req, res) {
       });
     }
 
-    console.log(`WhatsApp alert sent to ${toNumber}, SID: ${twilioData.sid}`);
+    // Lead capturado (sin storage todavía): queda registrado en los logs de Vercel.
+    console.log(
+      `LEAD AVANTE | tel:+${digits} | email:${email || "-"} | salud:${overallHealth}% | SID:${twilioData.sid}`
+    );
     return res.status(200).json({ ok: true, messageSid: twilioData.sid });
   } catch (err) {
     console.error("Alert endpoint error:", err);
