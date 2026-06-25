@@ -1,5 +1,3 @@
-import { GoogleGenerativeAI } from "@google/generative-ai";
-
 export default async function handler(req, res) {
   if (req.method !== "GET") {
     return res.status(405).json({ ok: false, error: "METHOD_NOT_ALLOWED" });
@@ -13,28 +11,93 @@ export default async function handler(req, res) {
 
     console.log(`Testing Gemini API with key: ${apiKey.substring(0, 10)}...`);
 
-    const genAI = new GoogleGenerativeAI(apiKey);
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    const modelsToTry = [
+      "gemini-2.5-flash",
+      "gemini-2.0-flash",
+      "gemini-2.0-flash-001",
+      "gemini-2.5-pro",
+    ];
 
-    // Test simple sin imágenes
-    const result = await model.generateContent("Responde solo con: OK");
-    const response = await result.response;
-    const text = response.text();
+    let available = [];
+    try {
+      const listRes = await fetch(
+        `https://generativelanguage.googleapis.com/v1/models?key=${apiKey}`
+      );
+      if (listRes.ok) {
+        const data = await listRes.json();
+        available = (data.models || [])
+          .map((m) => m.name.replace("models/", ""))
+          .filter((m) => !m.includes("embedding"));
+      }
+    } catch {
+      // seguir con lista fija
+    }
 
-    return res.status(200).json({ 
-      ok: true, 
-      message: "API funcionando correctamente",
-      response: text.trim()
+    const candidates =
+      available.length > 0
+        ? modelsToTry.filter((m) => available.includes(m))
+        : modelsToTry;
+
+    if (candidates.length === 0) {
+      return res.status(500).json({
+        ok: false,
+        error: "NO_MODELS",
+        message: "No hay modelos compatibles disponibles en este proyecto.",
+        availableModels: available,
+      });
+    }
+
+    let lastError;
+    for (const model of candidates) {
+      try {
+        const url = `https://generativelanguage.googleapis.com/v1/models/${model}:generateContent?key=${apiKey}`;
+        const apiRes = await fetch(url, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            contents: [{ parts: [{ text: "Responde solo con: OK" }] }],
+          }),
+        });
+
+        if (!apiRes.ok) {
+          const err = await apiRes.json().catch(() => ({}));
+          lastError = err.error?.message || apiRes.statusText;
+          continue;
+        }
+
+        const data = await apiRes.json();
+        const text =
+          data.candidates?.[0]?.content?.parts
+            ?.map((p) => p.text)
+            .join("")
+            .trim() || "";
+
+        return res.status(200).json({
+          ok: true,
+          message: "API funcionando correctamente",
+          model,
+          response: text,
+          availableModels: available.length ? available : undefined,
+        });
+      } catch (err) {
+        lastError = err.message;
+      }
+    }
+
+    return res.status(500).json({
+      ok: false,
+      error: "TEST_ERROR",
+      message: lastError || "Todos los modelos fallaron",
+      triedModels: candidates,
+      availableModels: available,
+      hint: "Verifica que Gemini API esté habilitada en el proyecto SCANNER LLANTAS AVANTE NUEVO.",
     });
   } catch (err) {
     console.error("Test error:", err);
-    return res.status(500).json({ 
-      ok: false, 
+    return res.status(500).json({
+      ok: false,
       error: "TEST_ERROR",
       message: err.message,
-      details: err.stack,
-      hint: "Verifica que la API de Gemini esté habilitada en: https://console.cloud.google.com/apis/library/generativelanguage.googleapis.com"
     });
   }
 }
-
