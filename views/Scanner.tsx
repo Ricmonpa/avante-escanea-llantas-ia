@@ -4,6 +4,20 @@ import { Stepper } from '../components/Stepper';
 import { View } from '../types';
 import { CameraIcon } from '../components/icons/CameraIcon';
 
+// ─── Tipos de API de enfoque (no en todos los TS lib por defecto) ─────────────
+interface ExtendedMediaTrackCapabilities extends MediaTrackCapabilities {
+  focusMode?: string[];
+  torch?: boolean;
+}
+interface ExtendedMediaTrackConstraintSet extends MediaTrackConstraintSet {
+  focusMode?: ConstrainDOMString;
+  torch?: boolean;
+  advanced?: ExtendedMediaTrackConstraintSet[];
+}
+declare global {
+  interface MediaTrackConstraints extends ExtendedMediaTrackConstraintSet {}
+}
+
 interface ScannerProps {
   onNavigate: (view: View) => void;
   photos: (string | null)[];
@@ -14,14 +28,16 @@ const steps = ['Llanta 1', 'Llanta 2', 'Llanta 3', 'Llanta 4'];
 
 // ─── Captura desde galería ────────────────────────────────────────────────────
 // createImageBitmap hace decode+resize en una sola operación nativa.
-// Peak de RAM = bitmap reducido (~1.9MB), nunca el archivo original (hasta 47MB+).
+// Peak de RAM = bitmap reducido (~2.5MB), nunca el archivo original (hasta 47MB+).
+// Subimos a 1280px para que la IA tenga más detalle en el dibujo del neumático,
+// manteniendo la compresión JPEG en 0.75 para equilibrar calidad vs. peso.
 const compressFromFile = async (file: File): Promise<string> => {
-  const MAX_WIDTH = 800;
-  const QUALITY = 0.6;
+  const MAX_WIDTH = 1280;
+  const QUALITY = 0.75;
 
   const bitmap = await createImageBitmap(file, {
     resizeWidth: MAX_WIDTH,
-    resizeQuality: 'medium',
+    resizeQuality: 'high',
   });
 
   const canvas = document.createElement('canvas');
@@ -47,8 +63,8 @@ const compressFromFile = async (file: File): Promise<string> => {
 };
 
 // ─── Captura desde video en vivo ──────────────────────────────────────────────
-// El frame ya viene a la resolución solicitada (800×600).
-// Nunca existe una imagen a resolución completa en memoria.
+// El frame viene a la resolución real del track (hasta 1280×960).
+// JPEG a 0.88 para mejor fidelidad del dibujo del neumático.
 const captureFromVideo = (video: HTMLVideoElement): string => {
   const canvas = document.createElement('canvas');
   canvas.width = video.videoWidth;
@@ -62,11 +78,44 @@ const captureFromVideo = (video: HTMLVideoElement): string => {
   }
 
   ctx.drawImage(video, 0, 0);
-  const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
+  const dataUrl = canvas.toDataURL('image/jpeg', 0.88);
   canvas.width = 0;
   canvas.height = 0;
 
   return dataUrl;
+};
+
+// ─── Activa autofoco continuo en el track de video (Android/Chrome) ───────────
+// En Safari/iOS esta API no está expuesta, el catch lo maneja silenciosamente.
+const applyAutoFocus = async (stream: MediaStream): Promise<void> => {
+  const [track] = stream.getVideoTracks();
+  if (!track) return;
+  try {
+    const caps = track.getCapabilities() as ExtendedMediaTrackCapabilities;
+    if (caps?.focusMode && caps.focusMode.includes('continuous')) {
+      await track.applyConstraints({
+        advanced: [{ focusMode: 'continuous' }],
+      } as ExtendedMediaTrackConstraintSet);
+    }
+  } catch {
+    // silencioso — si el browser no lo soporta simplemente no aplica
+  }
+};
+
+// ─── Enciende / apaga linterna (Android/Chrome) ───────────────────────────────
+const applyTorch = async (stream: MediaStream, on: boolean): Promise<void> => {
+  const [track] = stream.getVideoTracks();
+  if (!track) return;
+  try {
+    const caps = track.getCapabilities() as ExtendedMediaTrackCapabilities;
+    if (caps?.torch) {
+      await track.applyConstraints({
+        advanced: [{ torch: on }],
+      } as ExtendedMediaTrackConstraintSet);
+    }
+  } catch {
+    // silencioso
+  }
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -76,18 +125,30 @@ export const Scanner: React.FC<ScannerProps> = ({ onNavigate, photos, setPhotos 
   const [isProcessing, setIsProcessing] = useState(false);
   const [isCameraActive, setIsCameraActive] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // ── Nuevos estados de enfoque ──────────────────────────────────────────────
+  const [torchOn, setTorchOn] = useState(false);
+  const [torchAvailable, setTorchAvailable] = useState(false);
+  const [countdown, setCountdown] = useState<number | null>(null); // null = inactivo
 
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const uploadInputRef = useRef<HTMLInputElement>(null);
+  const countdownTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Detiene el stream y oculta el visor de cámara
   const stopStream = useCallback(() => {
+    if (countdownTimerRef.current) {
+      clearTimeout(countdownTimerRef.current);
+      countdownTimerRef.current = null;
+    }
+    setCountdown(null);
     if (streamRef.current) {
       streamRef.current.getTracks().forEach(t => t.stop());
       streamRef.current = null;
     }
     setIsCameraActive(false);
+    setTorchOn(false);
+    setTorchAvailable(false);
   }, []);
 
   // Limpiar al desmontar el componente
@@ -103,18 +164,30 @@ export const Scanner: React.FC<ScannerProps> = ({ onNavigate, photos, setPhotos 
   }, [isCameraActive]);
 
   // ── Abrir cámara con getUserMedia ──────────────────────────────────────────
-  // El sensor nunca captura a más de 800×600 → cero imagen a resolución completa en RAM.
+  // Pedimos resolución más alta (1280×960) para mejor detalle del dibujo de la llanta.
+  // El autofoco continuo se aplica después de obtener el stream.
   const handleOpenCamera = async () => {
     setError(null);
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
         video: {
           facingMode: 'environment',
-          width: { ideal: 800 },
-          height: { ideal: 600 },
+          width: { ideal: 1280 },
+          height: { ideal: 960 },
         },
       });
       streamRef.current = stream;
+
+      // Autofoco continuo (Android/Chrome) — silencioso en iOS
+      await applyAutoFocus(stream);
+
+      // Detectar si hay linterna disponible
+      const [track] = stream.getVideoTracks();
+      if (track) {
+        const caps = track.getCapabilities() as ExtendedMediaTrackCapabilities;
+        setTorchAvailable(!!caps?.torch);
+      }
+
       setIsCameraActive(true);
     } catch {
       setError('No se pudo acceder a la cámara. Verifica los permisos e intenta de nuevo.');
@@ -122,18 +195,52 @@ export const Scanner: React.FC<ScannerProps> = ({ onNavigate, photos, setPhotos 
   };
 
   // ── Tomar la foto del frame actual del video ───────────────────────────────
+  // Espera 2 s de countdown para que el autofoco termine antes de disparar.
+  // Si ya hay un countdown activo, lo cancela (permite reintentar).
   const handleCapture = () => {
     if (!videoRef.current) return;
     setError(null);
-    try {
-      const dataUrl = captureFromVideo(videoRef.current);
-      const newPhotos = [...photos];
-      newPhotos[currentStep] = dataUrl;
-      setPhotos(newPhotos);
-      stopStream();
-    } catch {
-      setError('No se pudo capturar la foto. Intenta de nuevo.');
+
+    // Si ya hay countdown corriendo, cancelarlo
+    if (countdownTimerRef.current) {
+      clearTimeout(countdownTimerRef.current);
+      countdownTimerRef.current = null;
+      setCountdown(null);
+      return;
     }
+
+    // Inicia countdown: 2 → 1 → dispara
+    setCountdown(2);
+
+    const tick = (remaining: number) => {
+      if (remaining <= 0) {
+        setCountdown(null);
+        countdownTimerRef.current = null;
+        // Captura el frame
+        try {
+          const dataUrl = captureFromVideo(videoRef.current!);
+          const newPhotos = [...photos];
+          newPhotos[currentStep] = dataUrl;
+          setPhotos(newPhotos);
+          stopStream();
+        } catch {
+          setError('No se pudo capturar la foto. Intenta de nuevo.');
+        }
+        return;
+      }
+      setCountdown(remaining);
+      countdownTimerRef.current = setTimeout(() => tick(remaining - 1), 1000);
+    };
+
+    countdownTimerRef.current = setTimeout(() => tick(1), 1000);
+  };
+
+  // ── Alternar linterna ─────────────────────────────────────────────────────
+  const handleToggleTorch = async () => {
+    if (!streamRef.current) return;
+    const next = !torchOn;
+    await applyTorch(streamRef.current, next);
+    setTorchOn(next);
   };
 
   // ── Subir archivo desde galería ───────────────────────────────────────────
@@ -209,6 +316,17 @@ export const Scanner: React.FC<ScannerProps> = ({ onNavigate, photos, setPhotos 
           />
         </div>
 
+        {/* Linterna (solo visible si el dispositivo la soporta) */}
+        {torchAvailable && (
+          <button
+            onClick={handleToggleTorch}
+            aria-label={torchOn ? 'Apagar linterna' : 'Encender linterna'}
+            className="absolute top-4 right-4 z-10 bg-black/50 rounded-full p-2 text-white text-xl"
+          >
+            {torchOn ? '🔦' : '💡'}
+          </button>
+        )}
+
         {/* Guía de encuadre */}
         <div className="absolute inset-0 pointer-events-none flex flex-col items-center justify-center p-6">
           <div className="w-full max-w-md aspect-[4/3] border-4 border-dashed border-avante-green/70 rounded-2xl" />
@@ -217,8 +335,18 @@ export const Scanner: React.FC<ScannerProps> = ({ onNavigate, photos, setPhotos 
           </p>
         </div>
 
+        {/* Countdown overlay */}
+        {countdown !== null && (
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+            <span className="text-white font-extrabold drop-shadow-lg"
+              style={{ fontSize: '8rem', lineHeight: 1, textShadow: '0 0 20px rgba(0,0,0,0.8)' }}>
+              {countdown}
+            </span>
+          </div>
+        )}
+
         {error && (
-          <div className="absolute top-6 left-1/2 -translate-x-1/2 w-[90%] max-w-md p-3 bg-red-600/90 rounded-lg text-white text-sm text-center">
+          <div className="absolute top-16 left-1/2 -translate-x-1/2 w-[90%] max-w-md p-3 bg-red-600/90 rounded-lg text-white text-sm text-center">
             {error}
           </div>
         )}
@@ -230,16 +358,24 @@ export const Scanner: React.FC<ScannerProps> = ({ onNavigate, photos, setPhotos 
               onClick={() => { stopStream(); setError(null); }}
               variant="secondary"
               className="flex-1 text-lg"
+              disabled={countdown !== null}
             >
               Cancelar
             </Button>
-            <Button onClick={handleCapture} variant="primary" className="flex-1 text-lg">
+            <Button
+              onClick={handleCapture}
+              variant="primary"
+              className="flex-1 text-lg"
+            >
               <span className="flex items-center justify-center gap-2">
                 <CameraIcon className="w-6 h-6" />
-                Tomar Foto
+                {countdown !== null ? `Capturando… (${countdown}s)` : 'Tomar Foto'}
               </span>
             </Button>
           </div>
+          <p className="text-center text-white/60 text-xs mt-3">
+            Espera a que la imagen se vea nítida antes de disparar
+          </p>
         </div>
       </div>
     );
