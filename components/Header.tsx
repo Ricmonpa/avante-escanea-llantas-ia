@@ -1,6 +1,5 @@
 import React from 'react';
 import { View } from '../types';
-import { AvanteLogo } from './icons/AvanteLogo';
 
 interface HeaderProps {
     onNavigate: (view: View) => void;
@@ -15,7 +14,11 @@ export const Header: React.FC<HeaderProps> = ({ onNavigate, hidden }) => {
         <div className="flex items-center justify-between h-16">
           <div className="flex-shrink-0">
             <a onClick={() => onNavigate('landing')} className="cursor-pointer">
-              <AvanteLogo className="h-10 w-auto" />
+              <img
+                src="/avante-logo.png"
+                alt="AVANTE"
+                className="h-10 w-auto object-contain"
+              />
             </a>
           </div>
           <div className="hidden md:block">

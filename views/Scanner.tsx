@@ -200,6 +200,15 @@ export const Scanner: React.FC<ScannerProps> = ({ onNavigate, photos, setPhotos 
           className="absolute inset-0 w-full h-full object-cover"
         />
 
+        {/* Logo oficial en modo cámara */}
+        <div className="absolute top-4 left-4 z-10">
+          <img
+            src="/avante-logo-blanco.png"
+            alt="AVANTE"
+            className="h-8 w-auto object-contain drop-shadow-lg"
+          />
+        </div>
+
         {/* Guía de encuadre */}
         <div className="absolute inset-0 pointer-events-none flex flex-col items-center justify-center p-6">
           <div className="w-full max-w-md aspect-[4/3] border-4 border-dashed border-avante-green/70 rounded-2xl" />
@@ -239,6 +248,35 @@ export const Scanner: React.FC<ScannerProps> = ({ onNavigate, photos, setPhotos 
   return (
     <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-12">
       <div className="max-w-3xl mx-auto">
+
+        {/* Logo oficial + banner de marca */}
+        <div className="flex flex-col items-center mb-8">
+          <img
+            src="/avante-logo.png"
+            alt="AVANTE"
+            className="h-14 w-auto object-contain mb-4"
+          />
+          <div className="w-full rounded-xl overflow-hidden" style={{ background: 'linear-gradient(135deg, #003087 0%, #001a4d 100%)' }}>
+            <div className="flex items-center gap-4 px-6 py-4">
+              <img
+                src="/avante-icono-blanco.png"
+                alt=""
+                aria-hidden="true"
+                className="h-10 w-10 object-contain flex-shrink-0"
+              />
+              <div>
+                <p className="text-white font-bold text-lg leading-tight">Escaneo de Llantas con IA</p>
+                <p className="text-white/70 text-sm">Captura las 4 llantas para obtener tu diagnóstico</p>
+              </div>
+              <div className="ml-auto hidden sm:block">
+                <span className="inline-block bg-[#ba0c2f] text-white text-xs font-bold px-3 py-1 rounded-full uppercase tracking-wide">
+                  Gratuito
+                </span>
+              </div>
+            </div>
+            <div className="h-1 bg-[#ba0c2f]" />
+          </div>
+        </div>
 
         <div className="mb-12">
           <Stepper steps={steps} currentStep={currentStep} />

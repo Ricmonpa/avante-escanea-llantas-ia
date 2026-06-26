@@ -1,5 +1,4 @@
 import React from 'react';
-import { AvanteLogo } from './icons/AvanteLogo';
 
 export const Footer: React.FC<{ hidden?: boolean }> = ({ hidden }) => {
   if (hidden) return null;
@@ -8,7 +7,7 @@ export const Footer: React.FC<{ hidden?: boolean }> = ({ hidden }) => {
       <div className="container mx-auto py-8 px-4 sm:px-6 lg:px-8">
         <div className="md:flex md:justify-between">
           <div className="mb-6 md:mb-0">
-            <AvanteLogo className="h-12 w-auto" variant="dark" />
+            <img src="/avante-logo-blanco.png" alt="AVANTE" className="h-12 w-auto object-contain" />
             <p className="text-avante-gray-200 mt-2">Diagnóstico de llantas con IA.</p>
           </div>
           <div className="grid grid-cols-2 gap-8 sm:gap-6 sm:grid-cols-3">
