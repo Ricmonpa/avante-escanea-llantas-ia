@@ -11,8 +11,17 @@ El código ya está listo en `api/alert.js`; solo falta configurar las credencia
 4. Al enviarlo, se dispara `/api/alert` → Twilio manda el diagnóstico por WhatsApp.
 5. El usuario ve el diagnóstico completo en pantalla (se desbloquea aunque el envío falle).
 
-El número se normaliza automáticamente a formato mexicano:
-escribir `3312345678` equivale a `+52 33 1234 5678`.
+El número se normaliza automáticamente al formato correcto para WhatsApp México:
+
+| Entrada del usuario | Resultado enviado a Twilio | Notas |
+|---|---|---|
+| `4774046609` (10 d) | `+5214774046609` | Celular nacional → agrega `521` |
+| `524774046609` (12 d) | `+5214774046609` | Tiene `52` pero sin `1` → se agrega |
+| `5214774046609` (13 d) | `+5214774046609` | Ya correcto, sin cambio |
+
+> ⚠️ **Por qué el `1`**: WhatsApp registra los celulares mexicanos con un dígito `1`
+> entre el código de país `52` y el número de área. Sin ese `1` Twilio acepta el mensaje
+> (devuelve SID y status 200) pero WhatsApp lo rechaza silenciosamente y no lo entrega.
 
 ---
 
@@ -77,7 +86,7 @@ Para que cualquier cliente reciba el mensaje sin hacer `join`:
 curl -X POST https://TU-DOMINIO.vercel.app/api/alert \
   -H "Content-Type: application/json" \
   -d '{
-    "phone": "3312345678",
+    "phone": "4774046609",
     "email": "prueba@avante.mx",
     "diagnosis": [
       {"position":"Delantera Izquierda","health":35,"alerts":[{"text":"Desgaste severo","risk":"Alto"}]},
@@ -87,6 +96,8 @@ curl -X POST https://TU-DOMINIO.vercel.app/api/alert \
     ]
   }'
 ```
+
+> El campo `phone` acepta 10 dígitos (celular nacional), el código agrega `+521` automáticamente.
 
 Respuestas posibles:
 - `{"ok":true,"messageSid":"..."}` → enviado correctamente.
