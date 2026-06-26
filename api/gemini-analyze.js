@@ -6,19 +6,13 @@ export default async function handler(req, res) {
   try {
     const { photos = [], metadata = {} } = req.body || {};
 
-    const apiKey = process.env.GEMINI_API_KEY;
+    const apiKey = process.env.GEMINI_API_KEY?.trim();
     if (!apiKey) {
       console.error("Missing GEMINI_API_KEY");
       return res.status(500).json({ ok: false, error: "MISSING_API_KEY" });
     }
-    
-    // Validar formato de API key (debe empezar con AIza)
-    if (!apiKey.startsWith("AIza")) {
-      console.error("Invalid API key format");
-      return res.status(500).json({ ok: false, error: "INVALID_API_KEY_FORMAT" });
-    }
-    
-    console.log(`API Key present: ${apiKey.substring(0, 10)}... (${apiKey.length} chars)`);
+
+    console.log(`API Key present: ${apiKey.substring(0, 6)}... (${apiKey.length} chars)`);
     console.log(`Processing ${photos.length} photo(s)`);
 
     if (!photos || photos.length === 0) {
