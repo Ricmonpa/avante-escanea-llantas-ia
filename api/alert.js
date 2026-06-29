@@ -75,9 +75,9 @@ export default async function handler(req, res) {
     `Salud general: *${overallHealth}%*\n\n` +
     `⚠️ *Llantas en estado crítico:*\n${tiresDetail}\n\n` +
     `*${worstTire.position}* requiere atención inmediata: ${worstTire.health}% de vida útil restante.\n\n` +
-    `📅 Agenda tu cambio ahora y maneja seguro.\n` +
-    `👉 https://avante.com.mx/agendar\n\n` +
-    `_AVANTE — Expertos en llantas_`;
+    `📅 Cotiza con el tío Avante tu cambio de llantas ahora y maneja seguro.\n` +
+    `👉 https://wa.me/528183963593\n\n` +
+    `_LLANTAS AVANTE — Expertos en llantas y rines_`;
 
   try {
     const credentials = Buffer.from(`${accountSid}:${authToken}`).toString("base64");
