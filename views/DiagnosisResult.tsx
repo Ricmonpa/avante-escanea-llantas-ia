@@ -261,9 +261,14 @@ const FullDiagnosis: React.FC<FullDiagnosisProps> = ({ diagnosis, scannedPhotos,
           <Button onClick={() => onNavigate('recommendations')} variant="primary" className="text-lg">
             Ver recomendaciones
           </Button>
-          <Button onClick={() => onNavigate('assistant')} variant="secondary" className="text-lg">
-            Hablar con un asesor IA
-          </Button>
+          <a
+            href="https://wa.me/528183963593"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center justify-center gap-2 rounded-md border border-avante-blue px-6 py-3 text-lg font-semibold text-avante-blue hover:bg-avante-blue hover:text-white transition-colors duration-200"
+          >
+            💬 Cotiza tus llantas con tu tío Avante
+          </a>
         </div>
       </div>
     </>
