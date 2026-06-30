@@ -16,6 +16,9 @@ export interface DiagnosisMeta {
   location?: string;
   usage?: string;
   email?: string;
+  tireSize?: string;   // ej. "205/55 R16"
+  vehicleBrand?: string; // ej. "Nissan"
+  vehicleModel?: string; // ej. "Versa 2021"
 }
 
 export enum RiskLevel {
