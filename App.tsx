@@ -38,7 +38,7 @@ const App: React.FC = () => {
       case 'diagnosis':
         return <DiagnosisResult onNavigate={navigate} scannedPhotos={scannedPhotos} meta={diagnosisMeta} />;
       case 'recommendations':
-        return <Recommendations onNavigate={navigate} />;
+        return <Recommendations onNavigate={navigate} meta={diagnosisMeta} />;
       case 'assistant':
         return <Assistant onNavigate={navigate} />;
       case 'booking':
