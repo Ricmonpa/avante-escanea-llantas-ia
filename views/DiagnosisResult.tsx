@@ -40,7 +40,7 @@ const LoadingScreen: React.FC = () => (
   </div>
 );
 
-// ─── WhatsApp Gate: teaser + formulario ───────────────────────────────────────
+// ─── Email Gate: teaser + formulario ──────────────────────────────────────────
 
 interface GateProps {
   diagnosis: TireDiagnosis[];
@@ -48,8 +48,8 @@ interface GateProps {
   onUnlock: () => void;
 }
 
-const WhatsAppGate: React.FC<GateProps> = ({ diagnosis, email, onUnlock }) => {
-  const [phone, setPhone] = useState('');
+const EmailGate: React.FC<GateProps> = ({ diagnosis, email: prefill, onUnlock }) => {
+  const [email, setEmail] = useState(prefill || '');
   const [status, setStatus] = useState<'idle' | 'sending'>('idle');
   const [errorMsg, setErrorMsg] = useState('');
 
@@ -57,21 +57,21 @@ const WhatsAppGate: React.FC<GateProps> = ({ diagnosis, email, onUnlock }) => {
   const attention = tiresNeedingAttention(diagnosis);
 
   const handleSubmit = async () => {
-    const digits = phone.replace(/\D/g, '');
-    if (digits.length < 10) {
-      setErrorMsg('Ingresa un número válido (mínimo 10 dígitos).');
+    const value = email.trim();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)) {
+      setErrorMsg('Ingresa un correo válido.');
       return;
     }
     setErrorMsg('');
     setStatus('sending');
 
-    // Enviamos el WhatsApp — si falla, igual desbloqueamos.
-    // El número ya fue capturado; no penalizamos al usuario por un error de infraestructura.
+    // Enviamos el diagnóstico por correo — si falla, igual desbloqueamos.
+    // El correo ya fue capturado; no penalizamos al usuario por un error de infraestructura.
     try {
-      await fetch('/api/alert', {
+      await fetch('/api/send-diagnosis', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ phone: digits, diagnosis, email }),
+        body: JSON.stringify({ email: value, diagnosis }),
       });
     } catch {
       // silencioso — igual abre el diagnóstico
@@ -125,9 +125,9 @@ const WhatsAppGate: React.FC<GateProps> = ({ diagnosis, email, onUnlock }) => {
       {/* Formulario de captura */}
       <Card className="border-2 border-avante-blue shadow-lg">
         <div className="text-center mb-6">
-          <span className="text-4xl">📱</span>
+          <span className="text-4xl">📧</span>
           <h3 className="text-xl font-bold text-avante-blue mt-3">
-            Recibe tu diagnóstico completo por WhatsApp
+            Recibe tu diagnóstico completo por correo
           </h3>
           <p className="text-sm text-avante-gray-200 mt-1">
             Gratis · Inmediato · Sin spam
@@ -136,11 +136,11 @@ const WhatsAppGate: React.FC<GateProps> = ({ diagnosis, email, onUnlock }) => {
 
         <div className="flex flex-col sm:flex-row gap-3">
           <input
-            type="tel"
-            value={phone}
-            onChange={e => setPhone(e.target.value)}
+            type="email"
+            value={email}
+            onChange={e => setEmail(e.target.value)}
             onKeyDown={e => e.key === 'Enter' && handleSubmit()}
-            placeholder="Tu WhatsApp (ej. 5512345678)"
+            placeholder="tucorreo@ejemplo.com"
             className="flex-1 rounded-md border border-avante-gray-200 px-4 py-3 text-sm focus:outline-none focus:border-avante-blue"
             disabled={status === 'sending'}
           />
@@ -159,7 +159,7 @@ const WhatsAppGate: React.FC<GateProps> = ({ diagnosis, email, onUnlock }) => {
         )}
 
         <p className="mt-4 text-xs text-avante-gray-200 text-center">
-          Solo usamos tu número para enviarte este diagnóstico. Sin spam, sin suscripciones.
+          Solo usamos tu correo para enviarte este diagnóstico. Sin spam, sin suscripciones.
         </p>
       </Card>
     </div>
@@ -336,7 +336,7 @@ export const DiagnosisResult: React.FC<DiagnosisResultProps> = ({ onNavigate, sc
 
         {/* 3. Gate — teaser + WhatsApp */}
         {!loading && diagnosis && !gateUnlocked && (
-          <WhatsAppGate diagnosis={diagnosis} email={meta?.email} onUnlock={() => setGateUnlocked(true)} />
+          <EmailGate diagnosis={diagnosis} email={meta?.email} onUnlock={() => setGateUnlocked(true)} />
         )}
 
         {/* 4. Diagnóstico completo */}
