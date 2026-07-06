@@ -33,7 +33,6 @@ export const Questionnaire: React.FC<QuestionnaireProps> = ({ onNavigate, setMet
       mileageKm: mileage ? Number(mileage) : undefined,
       location: (data.get('location') as string) || undefined,
       usage: (data.get('usage') as string) || undefined,
-      email: (data.get('email') as string) || undefined,
       tireSize: (data.get('tireSize') as string) || undefined,
       vehicleBrand: (data.get('vehicleBrand') as string) || undefined,
       vehicleModel: (data.get('vehicleModel') as string) || undefined,
@@ -134,11 +133,6 @@ export const Questionnaire: React.FC<QuestionnaireProps> = ({ onNavigate, setMet
                         <option key={opt} value={opt}>{opt}</option>
                     ))}
                 </select>
-            </div>
-
-            <div>
-                <label htmlFor="email" className="block text-sm font-medium text-avante-gray-300">¿Quieres enterarte de nuestras ofertas? Ingresa tu email (Opcional)</label>
-                <input type="email" name="email" id="email" className="mt-1 block w-full rounded-md border-avante-gray-100 shadow-sm focus:border-avante-blue focus:ring-avante-blue sm:text-sm" placeholder="tucorreo@ejemplo.com" />
             </div>
 
             <div className="relative flex items-start">
