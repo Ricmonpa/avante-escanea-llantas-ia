@@ -1,12 +1,13 @@
 import nodemailer from "nodemailer";
 
 // Envía el diagnóstico del escáner por correo desde el buzón oficial de Avante
-// vía SMTP de Microsoft 365 (Outlook). Requiere estas variables de entorno en Vercel:
-//   SMTP_HOST=smtp.office365.com
-//   SMTP_PORT=587
+// vía SMTP del hosting (carrierzone). Requiere estas variables de entorno en Vercel:
+//   SMTP_HOST=mailc75.carrierzone.com
+//   SMTP_PORT=465               (SSL/TLS directo)
 //   SMTP_USER=atencionenlinea@avanteeste.com.mx
-//   SMTP_PASS=<app password del buzón>
+//   SMTP_PASS=<contraseña del buzón>
 //   MAIL_FROM=Avante <atencionenlinea@avanteeste.com.mx>
+// Nota: el puerto 465 activa secure:true automáticamente; 587 usaría STARTTLS.
 export default async function handler(req, res) {
   if (req.method !== "POST") {
     return res.status(405).json({ ok: false, error: "METHOD_NOT_ALLOWED" });
@@ -76,7 +77,8 @@ export default async function handler(req, res) {
     const transporter = nodemailer.createTransport({
       host: SMTP_HOST,
       port: Number(SMTP_PORT),
-      secure: false, // 587 usa STARTTLS
+      // 465 → SSL/TLS directo (secure:true). 587 → STARTTLS (secure:false).
+      secure: Number(SMTP_PORT) === 465,
       auth: { user: SMTP_USER, pass: SMTP_PASS },
     });
 
