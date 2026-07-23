@@ -1,11 +1,49 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
 // Analiza fotos de llantas con Gemini y devuelve un diagnóstico estructurado.
-// Usa el SDK oficial (@google/generative-ai), que maneja correctamente tanto las
-// keys clásicas (AIza...) como el formato nuevo (AQ...). El endpoint REST directo
-// con ?key= NO funciona con las keys nuevas, por eso migramos al SDK.
+// Usa el SDK oficial (@google/generative-ai). Los modelos disponibles cambian con
+// el tiempo (los 1.5/2.0 ya fueron descontinuados), así que en lugar de hardcodear
+// consultamos la lista real de modelos de la cuenta y elegimos el mejor "flash"
+// vigente automáticamente.
 
-const MODELS = ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash"];
+// Selecciona los mejores modelos multimodales disponibles, del más nuevo al más viejo.
+// Excluye modelos de imagen/embedding/gemma que no sirven para este análisis.
+async function pickModels(apiKey) {
+  try {
+    const r = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`
+    );
+    if (!r.ok) throw new Error(`list models ${r.status}`);
+    const { models = [] } = await r.json();
+
+    const usable = models
+      .filter((m) => m.supportedGenerationMethods?.includes("generateContent"))
+      .map((m) => m.name.replace("models/", ""))
+      .filter(
+        (n) =>
+          n.startsWith("gemini-") &&
+          !/embedding|image|imagen|gemma|vision|tts|audio/i.test(n)
+      );
+
+    // Ordena por número de versión desc (3.6 > 3.5 > 2.5), y flash antes que pro.
+    const ver = (n) => {
+      const m = n.match(/gemini-(\d+)\.(\d+)/);
+      return m ? Number(m[1]) * 100 + Number(m[2]) : 0;
+    };
+    usable.sort((a, b) => {
+      if (ver(b) !== ver(a)) return ver(b) - ver(a);
+      const fa = /flash/.test(a) ? 0 : 1;
+      const fb = /flash/.test(b) ? 0 : 1;
+      return fa - fb;
+    });
+
+    if (usable.length) return usable.slice(0, 5);
+  } catch (e) {
+    console.error("pickModels failed, using fallback:", e.message);
+  }
+  // Fallback si no se pudo listar
+  return ["gemini-2.5-flash", "gemini-2.5-pro"];
+}
 
 const INSTRUCTIONS = `Eres un experto en diagnóstico de llantas. Analiza las foto(s) de llantas y devuelve un JSON válido con este formato exacto (una entrada por cada foto, en el mismo orden):
 
@@ -83,6 +121,8 @@ export default async function handler(req, res) {
 
     // ── Llamar a Gemini vía SDK, probando modelos en orden ───────────────────
     const genAI = new GoogleGenerativeAI(apiKey);
+    const MODELS = await pickModels(apiKey);
+    console.log(`Modelos a probar: ${MODELS.join(", ")}`);
     let text;
     let lastError;
 
