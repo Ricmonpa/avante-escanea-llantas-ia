@@ -6,17 +6,15 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 // consultamos la lista real de modelos de la cuenta y elegimos el mejor "flash"
 // vigente automáticamente.
 
-// Elige el modelo por COSTO, no por novedad: los modelos "lite/flash" 2.5 son
-// baratísimos y suficientes para analizar llantas. Los modelos nuevos 3.x cuestan
-// mucho más (y traen "thinking tokens" que inflan el costo). Priorizamos los
-// económicos y solo caemos a otros si Google descontinuara estos.
-//
-// Orden de preferencia por costo (más barato → más caro):
-const PREFERRED = [
-  "gemini-2.5-flash-lite", // el más barato ($0.10/$0.40 por millón)
-  "gemini-2.0-flash-lite",
-  "gemini-2.5-flash",      // respaldo barato y estable
-];
+// Elige el modelo balanceando COSTO y DISPONIBILIDAD.
+// OJO: Google bloqueó los modelos 2.x para "usuarios nuevos" (proyectos creados
+// recientemente) → devuelven 404 "no longer available to new users". Por eso NO
+// se pueden hardcodear 2.5-flash/lite. En su lugar consultamos la lista real de
+// modelos de la cuenta y preferimos los "flash-lite" (más baratos) más nuevos,
+// que sí están disponibles para proyectos nuevos.
+
+// Respaldo si no se pudiera listar (modelos 3.x económicos, disponibles a nuevos).
+const FALLBACK = ["gemini-3.5-flash-lite", "gemini-3.1-flash-lite", "gemini-3.5-flash"];
 
 async function pickModels(apiKey) {
   try {
@@ -26,32 +24,36 @@ async function pickModels(apiKey) {
     if (!r.ok) throw new Error(`list models ${r.status}`);
     const { models = [] } = await r.json();
 
-    const available = new Set(
-      models
-        .filter((m) => m.supportedGenerationMethods?.includes("generateContent"))
-        .map((m) => m.name.replace("models/", ""))
-    );
-
-    // 1) Toma los preferidos económicos que estén disponibles, en orden.
-    const chosen = PREFERRED.filter((n) => available.has(n));
-
-    // 2) Si ninguno estuviera disponible, cae a cualquier "flash" vigente
-    //    (evita quedarse sin modelo si Google descontinúa los 2.x).
-    if (chosen.length === 0) {
-      const anyFlash = [...available].filter(
+    const flash = models
+      .filter((m) => m.supportedGenerationMethods?.includes("generateContent"))
+      .map((m) => m.name.replace("models/", ""))
+      .filter(
         (n) =>
           n.startsWith("gemini-") &&
           /flash/.test(n) &&
-          !/embedding|image|imagen|gemma|vision|tts|audio/i.test(n)
+          !/image|imagen|embedding|gemma|vision|tts|audio/i.test(n)
       );
-      chosen.push(...anyFlash.slice(0, 3));
-    }
 
-    if (chosen.length) return chosen;
+    // Número de versión (3.5 → 305) para ordenar del más nuevo al más viejo.
+    const ver = (n) => {
+      const m = n.match(/gemini-(\d+)\.(\d+)/);
+      return m ? Number(m[1]) * 100 + Number(m[2]) : 0;
+    };
+
+    // Orden: primero "lite" (más barato), y dentro de cada grupo el más NUEVO
+    // (los nuevos 3.x sí están permitidos para proyectos nuevos; los 2.x no).
+    flash.sort((a, b) => {
+      const la = /lite/.test(a) ? 0 : 1;
+      const lb = /lite/.test(b) ? 0 : 1;
+      if (la !== lb) return la - lb;      // lite primero
+      return ver(b) - ver(a);             // más nuevo primero
+    });
+
+    if (flash.length) return flash.slice(0, 6);
   } catch (e) {
     console.error("pickModels failed, using fallback:", e.message);
   }
-  return PREFERRED;
+  return FALLBACK;
 }
 
 const INSTRUCTIONS = `Eres un experto en diagnóstico de llantas. Analiza las foto(s) de llantas y devuelve un JSON válido con este formato exacto (una entrada por cada foto, en el mismo orden):
