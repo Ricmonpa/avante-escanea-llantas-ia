@@ -28,14 +28,9 @@ export const Questionnaire: React.FC<QuestionnaireProps> = ({ onNavigate, setMet
     // Capturamos la información para enviarla junto al diagnóstico de IA.
     const form = e.currentTarget as HTMLFormElement;
     const data = new FormData(form);
-    const mileage = data.get('mileage');
     setMeta({
-      mileageKm: mileage ? Number(mileage) : undefined,
       location: (data.get('location') as string) || undefined,
       usage: (data.get('usage') as string) || undefined,
-      tireSize: (data.get('tireSize') as string) || undefined,
-      vehicleBrand: (data.get('vehicleBrand') as string) || undefined,
-      vehicleModel: (data.get('vehicleModel') as string) || undefined,
     });
 
     setIsLoading(true);
@@ -68,59 +63,6 @@ export const Questionnaire: React.FC<QuestionnaireProps> = ({ onNavigate, setMet
         <p className="text-center text-avante-gray-200 mb-8">Esta información nos ayuda a darte recomendaciones personalizadas.</p>
         <Card>
           <form onSubmit={handleSubmit} className="space-y-6">
-            <div>
-              <label htmlFor="mileage" className="block text-sm font-medium text-avante-gray-300">Kilometraje actual</label>
-              <input type="number" name="mileage" id="mileage" className="mt-1 block w-full rounded-md border-avante-gray-100 shadow-sm focus:border-avante-blue focus:ring-avante-blue sm:text-sm" placeholder="Ej. 55000" required/>
-            </div>
-
-            {/* ── Vehículo ── */}
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label htmlFor="vehicleBrand" className="block text-sm font-medium text-avante-gray-300">
-                  Marca del vehículo
-                </label>
-                <input
-                  type="text"
-                  name="vehicleBrand"
-                  id="vehicleBrand"
-                  className="mt-1 block w-full rounded-md border-avante-gray-100 shadow-sm focus:border-avante-blue focus:ring-avante-blue sm:text-sm"
-                  placeholder="Ej. Nissan"
-                  required
-                />
-              </div>
-              <div>
-                <label htmlFor="vehicleModel" className="block text-sm font-medium text-avante-gray-300">
-                  Modelo y año
-                </label>
-                <input
-                  type="text"
-                  name="vehicleModel"
-                  id="vehicleModel"
-                  className="mt-1 block w-full rounded-md border-avante-gray-100 shadow-sm focus:border-avante-blue focus:ring-avante-blue sm:text-sm"
-                  placeholder="Ej. Versa 2021"
-                  required
-                />
-              </div>
-            </div>
-
-            {/* ── Medida de llanta ── */}
-            <div>
-              <label htmlFor="tireSize" className="block text-sm font-medium text-avante-gray-300">
-                Medida de la llanta
-              </label>
-              <input
-                type="text"
-                name="tireSize"
-                id="tireSize"
-                className="mt-1 block w-full rounded-md border-avante-gray-100 shadow-sm focus:border-avante-blue focus:ring-avante-blue sm:text-sm"
-                placeholder="Ej. 205/55 R16"
-              />
-              <p className="mt-1 text-xs text-avante-gray-200">
-                📍 La encuentras en el flanco de cualquiera de tus llantas o en la puerta del conductor.
-                Si no la tienes a la mano, puedes dejarla en blanco.
-              </p>
-            </div>
-
             <div>
               <label htmlFor="location" className="block text-sm font-medium text-avante-gray-300">Ciudad / Estado</label>
               <input type="text" name="location" id="location" className="mt-1 block w-full rounded-md border-avante-gray-100 shadow-sm focus:border-avante-blue focus:ring-avante-blue sm:text-sm" placeholder="Ej. Ciudad de México" required/>
