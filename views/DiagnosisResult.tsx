@@ -99,30 +99,7 @@ const EmailGate: React.FC<GateProps> = ({ diagnosis, email: prefill, onUnlock })
         )}
       </Card>
 
-      {/* Preview borroso de los resultados detallados */}
-      <div className="relative mb-6 overflow-hidden rounded-xl">
-        <div className="blur-sm pointer-events-none select-none opacity-50 space-y-4">
-          {[0, 1].map(i => (
-            <Card key={i}>
-              <div className="flex items-center gap-4 px-2">
-                <div className="w-20 h-16 bg-avante-gray-300 rounded-lg flex-shrink-0" />
-                <div className="flex-1 space-y-2">
-                  <div className="h-4 bg-avante-gray-300 rounded w-1/3" />
-                  <div className="h-3 bg-avante-gray-200 rounded w-2/3" />
-                  <div className="h-3 bg-avante-gray-200 rounded w-1/2" />
-                </div>
-                <div className="text-3xl font-extrabold text-avante-gray-300 flex-shrink-0">
-                  {diagnosis[i]?.health ?? '--'}%
-                </div>
-              </div>
-            </Card>
-          ))}
-        </div>
-        {/* Gradiente que disuelve el preview */}
-        <div className="absolute inset-0 bg-gradient-to-b from-transparent via-white/70 to-white pointer-events-none" />
-      </div>
-
-      {/* Formulario de captura */}
+      {/* Formulario de captura (arriba, visible de inmediato) */}
       <Card className="border-2 border-avante-blue shadow-lg">
         <div className="text-center mb-6">
           <span className="text-4xl">📧</span>
@@ -162,6 +139,16 @@ const EmailGate: React.FC<GateProps> = ({ diagnosis, email: prefill, onUnlock })
           Solo usamos tu correo para enviarte este diagnóstico. Sin spam, sin suscripciones.
         </p>
       </Card>
+
+      {/* Cotiza con el tío Avante (WhatsApp) */}
+      <a
+        href="https://wa.me/528183963593?text=Hola%20t%C3%ADo%20Avante%2C%20quiero%20cotizar%20mis%20llantas"
+        target="_blank"
+        rel="noopener noreferrer"
+        className="mt-4 flex items-center justify-center gap-2 rounded-md border border-avante-blue px-6 py-3 text-base font-semibold text-avante-blue hover:bg-avante-blue hover:text-white transition-colors duration-200"
+      >
+        💬 Cotiza tus llantas con el tío Avante
+      </a>
     </div>
   );
 };
@@ -257,17 +244,21 @@ const FullDiagnosis: React.FC<FullDiagnosisProps> = ({ diagnosis, scannedPhotos,
           *Estimación orientativa basada en IA. No es una certificación técnica. Para una
           evaluación definitiva, agenda una inspección gratuita en tu sucursal AVANTE más cercana.
         </p>
-        <div className="flex justify-center flex-wrap gap-4">
-          <Button onClick={() => onNavigate('recommendations')} variant="primary" className="text-lg">
-            Ver recomendaciones
+        <div className="flex flex-col items-stretch gap-4 max-w-xl mx-auto">
+          <Button
+            onClick={() => onNavigate('recommendations')}
+            variant="primary"
+            className="w-full text-xl px-8 py-5"
+          >
+            VER PRECIOS DE LLANTAS SEGÚN TU MEDIDA
           </Button>
           <a
-            href="https://wa.me/528183963593"
+            href="https://www.grupoavante.org"
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center justify-center gap-2 rounded-md border border-avante-blue px-6 py-3 text-lg font-semibold text-avante-blue hover:bg-avante-blue hover:text-white transition-colors duration-200"
+            className="inline-flex items-center justify-center gap-2 rounded-md border border-avante-blue px-6 py-3 text-base font-semibold text-avante-blue hover:bg-avante-blue hover:text-white transition-colors duration-200"
           >
-            💬 Cotiza tus llantas con tu tío Avante
+            🎉 APROVECHA LAS PROMOS EN NUESTRA PÁGINA WEB
           </a>
         </div>
       </div>

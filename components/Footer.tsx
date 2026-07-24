@@ -5,34 +5,28 @@ export const Footer: React.FC<{ hidden?: boolean }> = ({ hidden }) => {
   return (
     <footer className="bg-avante-gray-300 text-white">
       <div className="container mx-auto py-8 px-4 sm:px-6 lg:px-8">
-        <div className="md:flex md:justify-between">
+        <div className="md:flex md:justify-between md:items-center">
           <div className="mb-6 md:mb-0">
             <img src="/avante-logo-blanco.png" alt="AVANTE" className="h-12 w-auto object-contain" />
             <p className="text-avante-gray-200 mt-2">Diagnóstico de llantas con IA.</p>
           </div>
-          <div className="grid grid-cols-2 gap-8 sm:gap-6 sm:grid-cols-3">
-            <div>
-              <h2 className="mb-4 text-sm font-semibold uppercase">Recursos</h2>
-              <ul className="text-avante-gray-200 space-y-2">
-                <li><a href="#" className="hover:underline">Blog</a></li>
-                <li><a href="#" className="hover:underline">FAQs</a></li>
-              </ul>
-            </div>
-            <div>
-              <h2 className="mb-4 text-sm font-semibold uppercase">Legal</h2>
-              <ul className="text-avante-gray-200 space-y-2">
-                <li><a href="#" className="hover:underline">Política de Privacidad</a></li>
-                <li><a href="#" className="hover:underline">Términos y Condiciones</a></li>
-              </ul>
-            </div>
-            <div>
-              <h2 className="mb-4 text-sm font-semibold uppercase">Contacto</h2>
-              <ul className="text-avante-gray-200 space-y-2">
-                <li><a href="#" className="hover:underline">info@avante.mx</a></li>
-                <li><a href="#" className="hover:underline">800-AVANTE-1</a></li>
-              </ul>
-            </div>
-          </div>
+          <ul className="flex flex-wrap gap-x-8 gap-y-3 text-avante-gray-200 font-medium">
+            <li>
+              <a href="https://www.grupoavante.org" target="_blank" rel="noopener noreferrer" className="hover:text-white hover:underline">
+                Página web
+              </a>
+            </li>
+            <li>
+              <a href="https://wa.me/528183963593" target="_blank" rel="noopener noreferrer" className="hover:text-white hover:underline">
+                WhatsApp
+              </a>
+            </li>
+            <li>
+              <a href="https://www.grupoavante.org/sucursales" target="_blank" rel="noopener noreferrer" className="hover:text-white hover:underline">
+                Sucursales
+              </a>
+            </li>
+          </ul>
         </div>
         <hr className="my-6 border-avante-gray-200 sm:mx-auto opacity-30" />
         <div className="text-center text-sm text-avante-gray-200">
