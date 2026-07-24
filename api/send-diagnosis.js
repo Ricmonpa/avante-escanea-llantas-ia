@@ -66,6 +66,25 @@ export default async function handler(req, res) {
       <p style="margin:20px 0 0;font-size:14px;">
         <strong>${worstTire.position}</strong> es la que más requiere atención (${worstTire.health}% de vida útil).
       </p>
+
+      <!-- Botones de acción -->
+      <table role="presentation" width="100%" style="margin:24px 0 8px;">
+        <tr>
+          <td align="center" style="padding:6px;">
+            <a href="https://wa.me/528183963593?text=Hola%20t%C3%ADo%20Avante%2C%20quiero%20cotizar%20mis%20llantas"
+               style="display:inline-block;background:#25D366;color:#fff;text-decoration:none;font-weight:bold;font-size:15px;padding:14px 22px;border-radius:8px;">
+              💬 Cotizar por WhatsApp
+            </a>
+          </td>
+          <td align="center" style="padding:6px;">
+            <a href="https://www.grupoavante.org"
+               style="display:inline-block;background:#003087;color:#fff;text-decoration:none;font-weight:bold;font-size:15px;padding:14px 22px;border-radius:8px;">
+              🛞 Visitar nuestra tienda
+            </a>
+          </td>
+        </tr>
+      </table>
+
       <p style="margin:16px 0 0;font-size:12px;color:#888;">
         *Estimación orientativa basada en IA. No sustituye una inspección técnica.
         Para una evaluación definitiva, agenda una revisión gratuita en tu sucursal AVANTE.
