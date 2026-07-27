@@ -1,5 +1,26 @@
 import nodemailer from "nodemailer";
 
+// Envía el lead a una hoja de Google (vía Google Apps Script Web App).
+// Requiere la variable de entorno SHEETS_WEBHOOK_URL con la URL del script.
+// Es best-effort: cualquier error se registra pero no interrumpe el diagnóstico.
+async function saveLeadToSheet({ email, overallHealth, diagnosis }) {
+  const url = process.env.SHEETS_WEBHOOK_URL;
+  if (!url) return;
+  try {
+    await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        email,
+        saludGeneral: overallHealth,
+        llantas: (diagnosis || []).map((t) => ({ posicion: t.position, salud: t.health })),
+      }),
+    });
+  } catch (e) {
+    console.error("saveLeadToSheet failed:", e.message);
+  }
+}
+
 // Envía el diagnóstico del escáner por correo desde el buzón oficial de Avante
 // vía SMTP del hosting (carrierzone). Requiere estas variables de entorno en Vercel:
 //   SMTP_HOST=mailc75.carrierzone.com
@@ -91,6 +112,10 @@ export default async function handler(req, res) {
       </p>
     </div>
   </div>`;
+
+  // ── Guardar el lead en Google Sheets (best-effort, no bloquea el diagnóstico) ─
+  // Si SHEETS_WEBHOOK_URL no está configurada, simplemente se omite.
+  await saveLeadToSheet({ email, overallHealth, diagnosis });
 
   try {
     const transporter = nodemailer.createTransport({
