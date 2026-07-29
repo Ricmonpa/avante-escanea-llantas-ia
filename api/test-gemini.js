@@ -11,17 +11,19 @@ export default async function handler(req, res) {
 
     console.log(`Testing Gemini API with key: ${apiKey.substring(0, 10)}...`);
 
+    // Mismos modelos que usa el diagnóstico real: 3.x flash-lite primero (baratos y
+    // disponibles para proyectos nuevos; los 2.x tienen cuota gratuita 0 en cuentas nuevas).
     const modelsToTry = [
-      "gemini-2.5-flash",
-      "gemini-2.0-flash",
-      "gemini-2.0-flash-001",
-      "gemini-2.5-pro",
+      "gemini-3.5-flash-lite",
+      "gemini-3.1-flash-lite",
+      "gemini-3.6-flash",
+      "gemini-3.5-flash",
     ];
 
     let available = [];
     try {
       const listRes = await fetch(
-        `https://generativelanguage.googleapis.com/v1/models?key=${apiKey}`
+        `https://generativelanguage.googleapis.com/v1beta/models?key=${apiKey}`
       );
       if (listRes.ok) {
         const data = await listRes.json();
@@ -50,7 +52,7 @@ export default async function handler(req, res) {
     let lastError;
     for (const model of candidates) {
       try {
-        const url = `https://generativelanguage.googleapis.com/v1/models/${model}:generateContent?key=${apiKey}`;
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`;
         const apiRes = await fetch(url, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
