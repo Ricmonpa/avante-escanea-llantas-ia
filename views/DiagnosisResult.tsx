@@ -251,10 +251,7 @@ const FullDiagnosis: React.FC<FullDiagnosisProps> = ({ diagnosis, scannedPhotos,
   return (
     <>
       <Card className="mb-10 text-center py-8">
-        <h2 className="text-base sm:text-lg font-bold text-avante-blue tracking-wide px-4">
-          {summaryHeadline(diagnosis)}
-        </h2>
-        <p className={`mt-3 text-6xl sm:text-7xl font-extrabold ${healthScoreColorOnWhite(health)}`}>
+        <p className={`text-6xl sm:text-7xl font-extrabold ${healthScoreColorOnWhite(health)}`}>
           {health}%
         </p>
         <p className="mt-1 text-sm text-avante-gray-200">
