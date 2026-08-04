@@ -17,10 +17,37 @@ const healthLabel = (h: number) => {
   return 'Estado crítico';
 };
 
+// Colores claros: para el score sobre la tarjeta AZUL del gate.
 const healthScoreColor = (h: number) => {
   if (h >= 70) return 'text-green-300';
   if (h >= 40) return 'text-yellow-300';
   return 'text-red-300';
+};
+
+// Colores oscuros: para el score sobre fondo BLANCO (resumen del diagnóstico).
+// Los tonos -300 son ilegibles sobre blanco, por eso se usan tonos fuertes.
+const healthScoreColorOnWhite = (h: number) => {
+  if (h >= 70) return 'text-green-600';
+  if (h >= 40) return 'text-amber-500';
+  return 'text-red-600';
+};
+
+// Cuántas llantas están en estado crítico (requieren cambio).
+const tiresNeedingReplacement = (d: TireDiagnosis[]) => d.filter(t => t.health < 40).length;
+
+const NUM_WORD = ['CERO', 'UNA', 'DOS', 'TRES', 'CUATRO'];
+
+// Encabezado del resumen, según el estado general de las llantas.
+const summaryHeadline = (d: TireDiagnosis[]) => {
+  const replace = tiresNeedingReplacement(d);
+  if (replace > 0) {
+    return `ATENCIÓN, ES NECESARIO CAMBIAR ${NUM_WORD[replace] ?? replace} DE TUS LLANTAS`;
+  }
+  const attention = tiresNeedingAttention(d);
+  if (attention > 0) {
+    return `${NUM_WORD[attention] ?? attention} DE TUS LLANTAS REQUIEREN ATENCIÓN`;
+  }
+  return 'TUS LLANTAS ESTÁN EN BUEN ESTADO';
 };
 
 const tiresNeedingAttention = (d: TireDiagnosis[]) =>
@@ -223,14 +250,16 @@ const FullDiagnosis: React.FC<FullDiagnosisProps> = ({ diagnosis, scannedPhotos,
   const health = avgHealth(diagnosis);
   return (
     <>
-      <Card className="mb-10 bg-avante-blue text-white">
-        <h2 className="text-2xl font-bold text-center">Resumen General</h2>
-        <div className="mt-4 text-center">
-          <p className="text-lg">
-            Salud promedio de tus llantas:{' '}
-            <span className="font-extrabold text-3xl">{health}%</span>
-          </p>
-        </div>
+      <Card className="mb-10 text-center py-8">
+        <h2 className="text-base sm:text-lg font-bold text-avante-blue tracking-wide px-4">
+          {summaryHeadline(diagnosis)}
+        </h2>
+        <p className={`mt-3 text-6xl sm:text-7xl font-extrabold ${healthScoreColorOnWhite(health)}`}>
+          {health}%
+        </p>
+        <p className="mt-1 text-sm text-avante-gray-200">
+          Salud promedio de tus llantas
+        </p>
       </Card>
 
       <div className="space-y-8">
