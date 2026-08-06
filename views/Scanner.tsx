@@ -431,7 +431,18 @@ export const Scanner: React.FC<ScannerProps> = ({ onNavigate, photos, setPhotos 
             : 'Sigue las guías en pantalla para una mejor calidad de imagen.'}
         </p>
 
-        {/* Banner informativo: cómo tomar la foto */}
+        {/* Banner gráfico: cómo tomar la foto correcta */}
+        {!isCameraActive && photos[currentStep] === null && (
+          <div className="mb-6 rounded-xl overflow-hidden shadow-sm">
+            <img
+              src="/banner-como-tomar-foto.png"
+              alt="Escanea tus llantas y obtén tu diagnóstico. Cómo tomar la foto correcta: ponte detrás o enfrente de la llanta, agáchate y toma la foto para ver toda la banda de rodadura."
+              className="w-full h-auto"
+            />
+          </div>
+        )}
+
+        {/* Texto informativo de apoyo */}
         {!isCameraActive && photos[currentStep] === null && (
           <div className="mb-6 bg-avante-blue/5 border border-avante-blue/20 rounded-xl p-4">
             <p className="font-bold text-avante-blue mb-1">📸 ¿Cómo tomar la foto correcta?</p>

@@ -17,7 +17,7 @@ export const Landing: React.FC<LandingProps> = ({ onNavigate }) => {
                 Escanea tus llantas con IA
             </h1>
             <p className="mt-4 max-w-2xl mx-auto text-lg md:text-xl text-avante-gray-200">
-                Diagnóstico gratuito, recomendaciones y agenda en minutos.
+                Diagnóstico gratuito, recomendaciones y cotización en minutos.
             </p>
             <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">
                 <Button
@@ -39,6 +39,20 @@ export const Landing: React.FC<LandingProps> = ({ onNavigate }) => {
                     autos, camionetas, camión, 4x4 y flotillas. Un solo escáner para todos tus vehículos.
                 </p>
             </div>
+
+            {/* Banner: revisa tus llantas → lleva al escáner */}
+            <button
+                onClick={() => onNavigate('scanner')}
+                className="mt-10 block w-full max-w-3xl mx-auto rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow duration-300 focus:outline-none focus:ring-2 focus:ring-avante-blue"
+                aria-label="Revisa tus llantas: escanear ahora"
+            >
+                <img
+                    src="/banner-revisa-llantas.png"
+                    alt="¡Es mejor prevenir que lamentar! Revisa tus llantas, te toma solo 5 minutos."
+                    className="w-full h-auto"
+                    loading="lazy"
+                />
+            </button>
         </div>
       </section>
 
@@ -54,10 +68,25 @@ export const Landing: React.FC<LandingProps> = ({ onNavigate }) => {
             <p className="mt-2 text-avante-gray-200">Recomendaciones para maximizar la vida útil de tus llantas y ahorrar combustible.</p>
           </div>
           <div className="p-6">
-            <h3 className="text-2xl font-bold text-avante-blue">Conveniencia total</h3>
-            <p className="mt-2 text-avante-gray-200">Diagnóstico y agenda desde tu celular. Sin esperas, sin complicaciones.</p>
+            <h3 className="text-2xl font-bold text-avante-blue">Todo en tus Manos</h3>
+            <p className="mt-2 text-avante-gray-200">Diagnostica y cotiza tus llantas nuevas sin moverte de casa. Todo desde tu móvil.</p>
           </div>
         </div>
+
+        {/* Banner: promociones → grupoavante.org */}
+        <a
+          href="https://www.grupoavante.org/promociones-en-llantas"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="mt-12 block max-w-4xl mx-auto rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow duration-300"
+        >
+          <img
+            src="/banner-promociones.png"
+            alt="¿Te urgen llantas nuevas? Aprovecha la sección de promociones en grupoavante.org"
+            className="w-full h-auto"
+            loading="lazy"
+          />
+        </a>
       </section>
 
       {/* Testimonials Section */}
