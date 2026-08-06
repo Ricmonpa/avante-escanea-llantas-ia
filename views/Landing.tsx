@@ -47,7 +47,7 @@ export const Landing: React.FC<LandingProps> = ({ onNavigate }) => {
                 aria-label="Revisa tus llantas: escanear ahora"
             >
                 <img
-                    src="/banner-revisa-llantas.png"
+                    src="/scanner-gratis-de-llantas-avante.png"
                     alt="¡Es mejor prevenir que lamentar! Revisa tus llantas, te toma solo 5 minutos."
                     className="w-full h-auto"
                     loading="lazy"
@@ -81,7 +81,7 @@ export const Landing: React.FC<LandingProps> = ({ onNavigate }) => {
           className="mt-12 block max-w-4xl mx-auto rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-shadow duration-300"
         >
           <img
-            src="/banner-promociones.png"
+            src="/te-urgen-llantas-nuevas-cotiza-con-el-tio-avante.png"
             alt="¿Te urgen llantas nuevas? Aprovecha la sección de promociones en grupoavante.org"
             className="w-full h-auto"
             loading="lazy"

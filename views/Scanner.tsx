@@ -435,7 +435,7 @@ export const Scanner: React.FC<ScannerProps> = ({ onNavigate, photos, setPhotos 
         {!isCameraActive && photos[currentStep] === null && (
           <div className="mb-6 rounded-xl overflow-hidden shadow-sm">
             <img
-              src="/banner-como-tomar-foto.png"
+              src="/diagnostico-de-llantas-gratis-avante.png"
               alt="Escanea tus llantas y obtén tu diagnóstico. Cómo tomar la foto correcta: ponte detrás o enfrente de la llanta, agáchate y toma la foto para ver toda la banda de rodadura."
               className="w-full h-auto"
             />
