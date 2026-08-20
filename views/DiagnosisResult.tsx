@@ -113,16 +113,16 @@ const EmailGate: React.FC<GateProps> = ({ diagnosis, email: prefill, onUnlock })
     <div className="max-w-2xl mx-auto">
 
       {/* Teaser: score general */}
-      <Card className="mb-6 bg-avante-blue text-white text-center py-8">
-        <p className="text-base font-medium opacity-75 mb-1 uppercase tracking-wide">
-          Salud general de tus llantas
+      <Card className="mb-6 text-center py-8">
+        <p className="text-lg font-bold text-avante-gray-300 mb-1">
+          Salud general de tus llantas:
         </p>
-        <p className={`text-7xl font-extrabold mb-2 ${healthScoreColor(health)}`}>
+        <p className={`text-7xl font-extrabold mb-2 ${healthScoreColorOnWhite(health)}`}>
           {health}%
         </p>
-        <p className="text-xl font-bold">{healthLabel(health)}</p>
+        <p className="text-xl font-bold text-avante-gray-300">{healthLabel(health)}</p>
         {attention > 0 && (
-          <p className="mt-3 opacity-80 text-sm">
+          <p className="mt-3 text-sm text-avante-gray-200">
             {attention} de 4 llantas {attention === 1 ? 'requiere' : 'requieren'} atención
           </p>
         )}
