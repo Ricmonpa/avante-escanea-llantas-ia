@@ -11,10 +11,12 @@ import { analyzeTires, friendlyDiagnosisError } from '../services/geminiService'
 const avgHealth = (d: TireDiagnosis[]) =>
   d.length ? Math.round(d.reduce((s, t) => s + t.health, 0) / d.length) : 0;
 
+// Frase que acompaña al porcentaje en el teaser. Busca despertar curiosidad
+// por ver el diagnóstico completo, no solo etiquetar el estado.
 const healthLabel = (h: number) => {
-  if (h >= 70) return 'Buen estado general';
-  if (h >= 40) return 'Requiere atención';
-  return 'Estado crítico';
+  if (h >= 70) return '¡Tus llantas están en buen estado!';
+  if (h >= 40) return '¡Es necesario revisar tus llantas!';
+  return '¡Atención! Tus llantas necesitan cambio.';
 };
 
 // Colores claros: para el score sobre la tarjeta AZUL del gate.
@@ -113,7 +115,7 @@ const EmailGate: React.FC<GateProps> = ({ diagnosis, email: prefill, onUnlock })
       {/* Teaser: score general */}
       <Card className="mb-6 bg-avante-blue text-white text-center py-8">
         <p className="text-base font-medium opacity-75 mb-1 uppercase tracking-wide">
-          Tu diagnóstico está listo
+          Salud general de tus llantas
         </p>
         <p className={`text-7xl font-extrabold mb-2 ${healthScoreColor(health)}`}>
           {health}%
