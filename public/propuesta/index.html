@@ -3,12 +3,12 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-  <meta name="description" content="Propuesta para Avante: hub de compatibilidad de llantas optimizado para motores generativos." />
+  <meta name="description" content="Propuesta para Avante: capa de equivalencias de llantas y hub optimizado para motores generativos." />
   <meta name="robots" content="noindex, nofollow" />
   <link rel="icon" href="/avante-icono.png" />
   <meta property="og:type" content="website" />
   <meta property="og:title" content="La pregunta que Avante no está contestando" />
-  <meta property="og:description" content="Propuesta para Avante: hub de compatibilidad de llantas optimizado para motores generativos." />
+  <meta property="og:description" content="Propuesta para Avante: capa de equivalencias de llantas y hub optimizado para motores generativos." />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <style>
@@ -167,6 +167,15 @@
     border-radius: 2px;
   }
 
+  h3.sub {
+    font-family: "Archivo", sans-serif;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--ink-3);
+    margin: 22px 0 8px;
+  }
   .pull {
     border-left: 4px solid var(--red);
     padding: 4px 0 4px 18px;
@@ -287,8 +296,8 @@
 <header class="hero">
   <div class="hero-in">
     <p class="kicker">Propuesta · Avante Llantas y Rines</p>
-    <h1>Tus clientes ya preguntan qué llanta les queda. <em>Se lo está contestando otro.</em></h1>
-    <p>Un hub de compatibilidad con el inventario real de Avante, construido para que ChatGPT, Perplexity y Google AI lo citen como fuente — y para que cada consulta termine en una cotización.</p>
+    <h1>Avante ya sabe qué llanta trae tu coche. <em>No sabe cuál otra te queda.</em></h1>
+    <p>Esa segunda pregunta es la que la gente le hace a ChatGPT, y hoy se la contestan calculadoras españolas. Proponemos la capa que falta: equivalencias sobre el inventario real de Avante, construida para que los motores de IA la citen.</p>
     <a class="cta" href="/propuesta/demo/" target="_blank" rel="noopener">Probar el mini demo <span class="arrow">&rarr;</span></a>
     <p class="cta-note">Funciona: mete un coche o una medida y calcula de verdad.</p>
   </div>
@@ -297,32 +306,46 @@
 <main>
 
   <section>
-    <h2>La oportunidad</h2>
-    <p class="lead">«¿Qué llanta le queda a mi Mazda 3 2021?» es una pregunta de alguien que está por comprar llantas. Hoy la contestan calculadoras genéricas, en pulgadas, sin precios en pesos y sin decir dónde comprarlas.</p>
-    <p class="pull">Avante puede contestarla mejor que nadie, porque Avante sí tiene el inventario.</p>
-    <p>Y el momento importa: cada vez más gente hace esa pregunta en un chat de IA en vez de en un buscador. Esas respuestas citan fuentes. Quien sea la fuente hoy, se queda con la categoría.</p>
+    <h2>Dónde está parado Avante</h2>
+    <p class="lead">Revisamos el sitio antes de proponer nada. Avante ya tiene más de lo que parece, y eso cambia la propuesta.</p>
+
+    <h3 class="sub">Lo que ya tiene</h3>
+    <p><strong>Buscador por vehículo con páginas indexadas.</strong> Direcciones como <code>grupoavante.org/llantas-para?marca=mazda&amp;anio=2019&amp;modelo=cx-30</code> ya existen y están en Google, con título propio por vehículo.</p>
+    <p><strong>Base de medidas de fábrica propia.</strong> El buscador resuelve el vehículo a su medida y de ahí busca producto. Se ve en sus propias URLs: CX-3 2019 a 215/60R16, CX-5 2016 a 225/65R17. Ese dato ya es de Avante, y es justo la parte cara de un proyecto así.</p>
+
+    <h3 class="sub">Lo que no tiene</h3>
+    <p><strong>Equivalencias. Ninguna.</strong> Su buscador contesta «qué llantas vendo en 205/55R16». No contesta «qué otra medida le queda a mi coche». Son preguntas distintas.</p>
+    <p><strong>Versión del vehículo.</strong> Sus URLs llegan a marca, año y modelo. Un Mazda 3 2021 calza 205/60 R16 o 215/45 R18 según equipamiento, y sin versión la respuesta se equivoca parte del tiempo.</p>
+    <p class="pull">La categoría «equivalencias de llantas» hoy la ganan sitios de España. En México está libre.</p>
   </section>
 
   <section>
-    <h2>Qué construimos</h2>
-    <p class="lead">Una página web por cada medida y por cada vehículo, con sus equivalencias válidas y las llantas que Avante tiene disponibles en esa medida, con precio y existencias.</p>
-    <p>Cientos de páginas, cada una con su propia dirección, generadas solas desde una sola plantilla. El cliente entra por donde quiera: por su coche, como en un buscador de refacciones, o por la medida que trae grabada en el costado de la llanta.</p>
+    <h2>Qué proponemos</h2>
+    <p class="lead">Tres cosas, ninguna duplica lo que ya existe.</p>
 
     <div class="phases">
       <div class="phase">
-        <div class="phase-n">FASE 1</div>
+        <div class="phase-n">1</div>
         <div>
-          <h3>Por medida</h3>
+          <h3>La capa de equivalencias</h3>
           <span class="url">grupoavante.org/equivalencias/205-55-r16</span>
-          <p>Alrededor de 800 páginas. Cobertura total desde el primer día, cálculo exacto y sin depender de ningún proveedor de datos. Es lo que entregamos completo.</p>
+          <p>Una página por medida con sus equivalencias válidas, las validaciones de seguridad y el inventario de Avante en cada una. Alrededor de 800 páginas, generadas solas. Es lo único que hoy no existe en ningún lado con inventario mexicano.</p>
         </div>
       </div>
-      <div class="phase phase-2">
-        <div class="phase-n">FASE 2</div>
+      <div class="phase">
+        <div class="phase-n">2</div>
         <div>
-          <h3>Por vehículo</h3>
+          <h3>Rescatar las páginas por vehículo</h3>
           <span class="url">grupoavante.org/compatibilidad/mazda/3/2021/i-sport</span>
-          <p>Marca, modelo, año y versión. La versión no es opcional: un Mazda 3 2021 calza 205/60 R16 o 215/45 R18 según el equipamiento, y aquí equivocarse significa una llanta mal montada. Por eso necesita una base de medidas de fábrica, que hay que curar o licenciar.</p>
+          <p>Las páginas por vehículo viven en la plataforma vieja, con parámetros en la URL y sin versión. El sitio nuevo no las tiene. Hay que migrarlas con URL limpia y versión antes de que la migración se las lleve, y sumarles las equivalencias.</p>
+        </div>
+      </div>
+      <div class="phase">
+        <div class="phase-n">3</div>
+        <div>
+          <h3>La capa para motores de IA</h3>
+          <span class="url">Sobre las dos anteriores</span>
+          <p>Texto extractable, datos estructurados y acceso abierto a la tabla. Es lo que convierte páginas de producto en una fuente que ChatGPT y Perplexity citan por nombre.</p>
         </div>
       </div>
     </div>
@@ -353,17 +376,18 @@
         </tbody>
       </table>
     </div>
-    <p class="total">Fase 1 completa: 3 semanas.</p>
-    <p>Fase 2 son una o dos semanas más de desarrollo sobre el mismo motor. El tiempo real depende de cuántos modelos decida cubrir Avante y de dónde salgan esos datos.</p>
+    <p class="total">Equivalencias por medida: 3 semanas.</p>
+    <p>Las páginas por vehículo salen más baratas de lo previsto: la base de medidas de fábrica ya es de Avante, así que no hay que licenciar ni curar nada. Una o dos semanas más, una vez que nos den acceso a ese catálogo y le agreguemos la versión.</p>
   </section>
 
   <section>
     <h2>Qué necesitamos de Avante</h2>
     <ol class="asks">
-      <li><p><strong>Dónde lo publicamos.</strong> ¿Se puede colgar de <code>grupoavante.org</code> desde VTEX, o vamos a subdominio? Colgarlo del dominio principal le suma autoridad en vez de repartirla.</p></li>
-      <li><p><strong>Alcance de la fase 2.</strong> ¿Curamos a mano los modelos más vendidos, o cotizamos una base de datos licenciada?</p></li>
+      <li><p><strong>Acceso al catálogo de medidas de fábrica.</strong> El que ya alimenta su buscador por vehículo. Es la pieza que vuelve barata la segunda parte.</p></li>
+      <li><p><strong>Qué pasa con la plataforma vieja.</strong> Si se apaga y cuándo. De eso depende la urgencia de migrar las páginas por vehículo.</p></li>
+      <li><p><strong>Dónde lo publicamos.</strong> Colgarlo de <code>grupoavante.org</code> le suma autoridad al dominio principal en vez de repartirla.</p></li>
       <li><p><strong>Aviso legal.</strong> El texto que aclara que la equivalencia es orientativa y que la instalación la valida un técnico.</p></li>
-      <li><p><strong>Metas a 90 días.</strong> Fijarlas juntos. No hay referencia previa de la categoría para ponerlas por nuestra cuenta.</p></li>
+      <li><p><strong>Metas a 90 días.</strong> Fijarlas juntos. No hay referencia previa de la categoría.</p></li>
     </ol>
   </section>
 
@@ -372,6 +396,8 @@
     <p>Una página real, con el cálculo real. Mete tu coche o la medida de tu llanta.</p>
     <a class="cta" href="/propuesta/demo/" target="_blank" rel="noopener">Probar el mini demo <span class="arrow">&rarr;</span></a>
   </div>
+
+  <p class="fine"><strong>Cómo se revisó el sitio de Avante.</strong> Lo que dice este documento sobre su buscador sale de sus propias URLs indexadas: las páginas por vehículo (<code>llantas-para?marca=&amp;anio=&amp;modelo=</code>) y las búsquedas que generan (CX-3 2019 &rarr; 215/60R16, CX-5 2016 &rarr; 225/65R17). Quedan dos puntos por confirmar abriendo la página: que efectivamente no muestre medidas alternativas, y si el catálogo de medidas de fábrica es de Avante o viene con la plataforma. Ninguno cambia el fondo de la propuesta, pero conviene cerrarlos antes de la junta.</p>
 
   <p class="fine">Sobre el demo: las equivalencias se calculan en vivo con la fórmula real de diámetro y la tolerancia de 3%. El catálogo de vehículos es una muestra curada de doce modelos del mercado mexicano, pendiente de validar contra ficha técnica — es exactamente la base de datos que la fase 2 tiene que resolver. Los productos, precios e índices de carga y velocidad son de ejemplo: en producción el inventario sale del catálogo de Avante y los índices, de la ficha de cada llanta.</p>
 
